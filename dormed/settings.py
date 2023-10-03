@@ -35,17 +35,19 @@ DEBUG = True
 SECRET_KEY = env('SECRET_KEY')
 SECURE_HSTS_SECONDS = 600
 SECURE_SSL_REDIRECT = False
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
-SECURE_HSTS_INCLUDE_SUBDOMAINS = False
-SECURE_HSTS_PRELOAD = False
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
 
 # # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS = ['*']
 #for localhost only
-# CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_ALLOW_ALL = True
+ALLOWED_HOSTS = ["https://dormed-clinic.azurewebsites.net/"]
+CSRF_TRUSTED_ORIGINS = ["https://dormed-clinic.azurewebsites.net/"]
 
 # Application definition
 
