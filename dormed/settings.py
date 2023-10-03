@@ -46,8 +46,8 @@ SECURE_HSTS_PRELOAD = True
 # ALLOWED_HOSTS = ['*']
 #for localhost only
 CORS_ORIGIN_ALLOW_ALL = True
-ALLOWED_HOSTS = ["https://dormed-clinic.azurewebsites.net/"]
-CSRF_TRUSTED_ORIGINS = ["https://dormed-clinic.azurewebsites.net/"]
+ALLOWED_HOSTS = ["dormed-clinic.azurewebsites.net"]
+CSRF_TRUSTED_ORIGINS = ["dormed-clinic.azurewebsites.net"]
 
 # Application definition
 
