@@ -60,7 +60,7 @@ const ProgramList = ({ programs, filteredItems, handleThemeChange, selectedCateg
                   <h4>{program[`description_${currentLanguage}`]}</h4>
                   <p className="programEffects">{program[`results_${currentLanguage}`]}</p>
                   <Button className="accordBtn">
-                    <a href="https://wirtualny-kalendarz.pl/rezerwacje-online/5d72d7ed85ec833211caec159436a6df">
+                    <a href="#">
                       <Trans i18nKey="order">Zamów!</Trans>
                     </a>
                   </Button>

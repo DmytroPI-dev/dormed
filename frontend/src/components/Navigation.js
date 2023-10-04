@@ -13,8 +13,8 @@ const containerStyle = {
 
 const center = {
   address: "Rokosza 5, Busko-Zdrój, Poland",
-  lat: 50.45730849310429,
-  lng: 20.712473549454433
+  lat: 50.43730849310429,
+  lng: 20.72473549454433
 };
 
 

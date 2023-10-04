@@ -17,26 +17,26 @@ function Hero() {
           <Col xs="12" md="auto">
             <nav className="pt-2">
               <span className="h5">{t("Recepcja")}</span>
-              <a className="ms-3 pulse" href="tel:+48600454635">
-                600 45 46 35
+              <a className="ms-3 pulse" href="tel:+111 11 11 11">
+                111 11 11 11
               </a>
-              <a className="ms-3 pulse" href="tel:+48604596473">
-                604 59 64 73
+              <a className="ms-3 pulse" href="tel:+111 11 11 11">
+              111 11 11 11
               </a>
-              <a className="ms-3 pulse " href="tel:+48413782318">
-                41 378 23 18
+              <a className="ms-3 pulse " href="tel:+111 11 11 11">
+              111 11 11 11
               </a>
             </nav>
             <nav className="pt-2">
               <span className="h5">{t("Klinika")}</span>
-              <a className="ms-3 pulse" href="tel:+48604596473">
-                604 59 64 73
+              <a className="ms-3 pulse" href="tel:+111 11 11 11">
+              111 11 11 11
               </a>
-              <a className="ms-3 pulse" href="tel:+48604596473">
-                604 59 64 73
+              <a className="ms-3 pulse" href="tel:+111 11 11 11">
+              111 11 11 11
               </a>
-              <a className="ms-3 pulse" href="tel:+48606430365">
-                606 43 03 65
+              <a className="ms-3 pulse" href="tel:+111 11 11 11">
+              111 11 11 11
               </a>
             </nav>
           </Col>

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "../../static/css/search.css";
 import {Form, FormGroup, Input} from "reactstrap";
-import { Trans, useTranslation } from "react-i18next";
+import { useTranslation } from "react-i18next";
 
 function Search({ onSearch }) {
   const [query, setQuery] = useState("");

@@ -110,14 +110,14 @@ function Regulamin() {
               <p>
                 {t("Goście mają prawo")}
                 <span>
-                  <a href="mailto:willadorotka@gmail.com">
-                    willadorotka@gmail.com
+                  <a href="mailto:email@gmail.com">
+                    email@gmail.com
                   </a>
                 </span>{" "}
                 {t("lub")}{" "}
                 <span>
-                  <a href="mailto:salon@salondorotka.pl">
-                    salon@salondorotka.pl
+                  <a href="mailto:email@semail.pl">
+                    email@email.pl
                   </a>
                 </span>
               </p>
@@ -166,11 +166,11 @@ function Regulamin() {
             )}
             <span>
               {" "}
-              <a href="mailto:willadorotka@gmail.com">willadorotka@gmail.com</a>
+              <a href="mailto:email@gmail.com">email@gmail.com</a>
             </span>{" "}
             {t("lub")}
             <span>
-              <a href="mailto:salon@salondorotka.pl">salon@salondorotka.pl</a>
+              <a href="mailto:email@email.pl">email@email.pl</a>
             </span>
           </p>
           <h4 className="text-success text-center">

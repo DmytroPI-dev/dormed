@@ -21,7 +21,7 @@ function Footer() {
               <Trans i18nKey="street">ul. Newstreet 5</Trans>
             </li>
             <li className="pulse">
-              <Trans i18nKey="city">28-100 Busko Zdrój</Trans>
+              <Trans i18nKey="city">28-100 My city</Trans>
             </li>
             <li>
               <a className="pulse" href="mailto:email@gmail.com">
@@ -35,18 +35,18 @@ function Footer() {
           <ul className="list-unstyled text-small">
             <li></li>
             <li>
-              <a className="pulse" href="tel:+48600454635">
-                600 45 46 35
+              <a className="pulse" href="tel:+111 11 11 11">
+              111 11 11 11
               </a>
             </li>
             <li>
-              <a className="pulse" href="tel:+48604596473">
-                604 59 64 73
+              <a className="pulse" href="tel:+111 11 11 11">
+              111 11 11 11
               </a>
             </li>
             <li>
-              <a className="pulse" href="tel:+48413782318">
-                41 378 23 18
+              <a className="pulse" href="tel:+111 11 11 11">
+              111 11 11 11
               </a>
             </li>
           </ul>
@@ -55,18 +55,18 @@ function Footer() {
           <h5>{t("Klinika")}</h5>
           <ul className="list-unstyled text-small">
             <li>
-              <a className="pulse" href="tel:+48600454635">
-                600 45 46 35
+              <a className="pulse" href="tel:+111 11 11 11">
+              111 11 11 11
               </a>
             </li>
             <li>
-              <a className="pulse" href="tel:+48604596473">
-                604 59 64 73
+              <a className="pulse" href="tel:+111 11 11 11">
+              111 11 11 11
               </a>
             </li>
             <li>
-              <a className="pulse" href="tel:+48606430365">
-                606 43 03 65
+              <a className="pulse" href="tel:+111 11 11 11">
+              111 11 11 11
               </a>
             </li>
           </ul>
@@ -74,10 +74,10 @@ function Footer() {
         <Col className="text-center">
           <h5>{t("Dane")}</h5>
           <ul className="list-unstyled text-small">
-            <li className="pulse">NIP: 655-104-79-57</li>
+            <li className="pulse">NIP: 111 11 11 11</li>
             <li className="pulse">Regon: 292668013</li>
             <li className="pulse">mBank</li>
-            <li className="pulse">3311 4020 0400 0031 0241 790 650</li>
+            <li className="pulse">1111 1111 1111 1111 1111 111 111</li>
           </ul>
         </Col>
         <Col className="text-center col-sm-12">

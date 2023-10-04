@@ -39,7 +39,7 @@ function PriceList({ prices, filteredItems, selectedCategory }) {
                 <td>{price.price}</td>
                 <td>
                   <Button>
-                    <a href="https://wirtualny-kalendarz.pl/rezerwacje-online/5d72d7ed85ec833211caec159436a6df">
+                    <a href="#">
                       <Trans i18nKey="order">Zamów!</Trans>
                     </a>
                   </Button>

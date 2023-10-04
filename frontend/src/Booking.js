@@ -64,17 +64,17 @@ const Booking = () => {
             {t("W celu rezerwacji proszę skontaktować się z nami:")}
           </h3>
 
-          <p>{t("kom. 600 45 46 35")}</p>
-          <p>{t("kom. 604 59 64 73")}</p>
-          <p>{t("kom. 606 43 03 65")}</p>
-          <p>{t("tel. 41 378 23 18")}</p>
+          <p>{t("kom. 111 11 11 11")}</p>
+          <p>{t("kom. 111 11 11 11")}</p>
+          <p>{t("kom. 111 11 11 11")}</p>
+          <p>{t("tel. 111 11 11 11")}</p>
           <p>
             Email:{" "}
-            <a href="mailto: willa@salondorotka.pl">willa@salondorotka.pl</a>
+            <a href="mailto: email@email.pl">email@email.pl</a>
           </p>
           <p>
             Email:{" "}
-            <a href="mailto: willadorotka@gmail.com">willadorotka@gmail.com</a>
+            <a href="mailto: email@gmail.com">email@gmail.com</a>
           </p>
 
           <h3 className="text-center">
@@ -85,10 +85,10 @@ const Booking = () => {
           <h4>{t("Płatności można dokonać:")}</h4>
           <p>{t("wpłacając zadatek na konto firmy:")}</p>
           <p>"Dormed Medical Spa"</p>
-          <p>"ul. Rokosza 5"</p>
-          <p>"28-100 Busko Zdrój"</p>
+          <p>"ul. Newstreet 5"</p>
+          <p>"28-100 New city"</p>
           <p>{t("Konto")}</p>
-          <p>33 1140 2004 0000 3102 4179 0650</p>
+          <p>11 1111 1111 1111 1111 1111</p>
           <p>
             {t(
               "w tytule przelewu proszę podać okres pobytu, ilość osób i obiekt Willa Dorotka lub Dormed Medical SPA"
