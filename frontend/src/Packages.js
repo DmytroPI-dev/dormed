@@ -1,9 +1,9 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import "../static/css/packages.css";
-import seniors from "../static/images/seniors_on_the_bench.jpg";
-import seniors1 from "../static/images/seniors_on_the_bench_back.jpg";
-import chess from "../static/images/playing_chess.jpg";
+import seniors from "/static/frontend/images/seniors_on_the_bench.jpg";
+import seniors1 from "/static/frontend/images/seniors_on_the_bench_back.jpg";
+import chess from "/static/frontend/images/playing_chess.jpg";
 import Footer from "./components/Footer";
 
 function Packages() {

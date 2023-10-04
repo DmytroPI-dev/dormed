@@ -24,13 +24,24 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # DBHOST is only the server name, not the full URL
 hostname = os.environ['DBHOST']
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': os.environ['DBNAME'],
+#         'HOST': hostname + ".mysql.database.azure.com",
+#         'USER': os.environ['DBUSER'] + "@" + hostname,
+#         'PASSWORD': os.environ['DBPASS'],
+#         'PORT':"3306" 
+#     }
+# }
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ['DBNAME'],
-        'HOST': hostname + ".mysql.database.azure.com",
-        'USER': os.environ['DBUSER'] + "@" + hostname,
+        'NAME': os.environ['DBNAME_POL'],
+        'HOST': os.environ['DBHOST_POL'],
+        'USER': os.environ['DBUSER_POL'],
         'PASSWORD': os.environ['DBPASS'],
-        'PORT':"3306" 
+        'PORT':"3380" 
     }
 }
+

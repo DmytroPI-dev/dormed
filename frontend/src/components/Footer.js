@@ -18,14 +18,14 @@ function Footer() {
           </h5>
           <ul className="list-unstyled text-small">
             <li className="pulse">
-              <Trans i18nKey="street">ul. Rokosza 5</Trans>
+              <Trans i18nKey="street">ul. Newstreet 5</Trans>
             </li>
             <li className="pulse">
               <Trans i18nKey="city">28-100 Busko Zdrój</Trans>
             </li>
             <li>
-              <a className="pulse" href="mailto:willadorotka@gmail.com">
-                willadorotka@gmail.com
+              <a className="pulse" href="mailto:email@gmail.com">
+                email@gmail.com
               </a>
             </li>
           </ul>

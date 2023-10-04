@@ -45,11 +45,11 @@ SECURE_HSTS_PRELOAD = True
 
 # ALLOWED_HOSTS = ['*']
 #for localhost only
-ALLOWED_HOSTS = ["dormed-clinic.azurewebsites.net"]
-CSRF_TRUSTED_ORIGINS = ["dormed-clinic.azurewebsites.net"]
+ALLOWED_HOSTS = ["dormed-clinic.azurewebsites.net","127.0.0.1"]
+CSRF_TRUSTED_ORIGINS = ["https://dormed-clinic.azurewebsites.net"]
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
-    "dormed-clinic.azurewebsites.net",
+    "https://dormed-clinic.azurewebsites.net",
     # Add any other allowed origins here as needed
 ]
 
@@ -107,17 +107,26 @@ WSGI_APPLICATION = 'dormed.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
-hostname = os.environ['DBHOST']
+# hostname = os.environ['DBHOST']
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': os.environ["DBNAME"],
+#         'USER': os.environ['DBUSER'],
+#         'PORT':'3306',
+#         'HOST': hostname + ".mysql.database.azure.com",
+#         'PASSWORD': os.environ['DBPASS']        
+#     }
+# }
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ["DBNAME"],
-        'USER': os.environ['DBUSER'],
-        'PORT':'3306',
-        'HOST': hostname + ".mysql.database.azure.com",
-        'PASSWORD': env('DBPASS')
-        
-        
+        'NAME': os.environ['DBNAME_POL'],
+        'HOST': os.environ['DBHOST_POL'],
+        'USER': os.environ['DBUSER_POL'],
+        'PASSWORD': os.environ['DBPASS'],
+        'PORT':"3380" 
     }
 }
 

@@ -1,2 +1,6 @@
 .env
 .venv/
+frontend/node_modules
+frontend/static/rooms
+frontend/static/images
+frontend/static/Dormed_photos

@@ -1,7 +1,7 @@
 import React from "react";
-import Facade from "../../frontend/static/images/facade.jpg";
-import Markoni from "../../frontend/static/images/Markoni_Busko.jpg";
-import Church from "../../frontend/static/images/BuskoZdrojWoodenChurch.jpg";
+import Facade from "/static/images/facade.jpg";
+import Markoni from "/static/images/Markoni_Busko.jpg";
+import Church from "/static/images/BuskoZdrojWoodenChurch.jpg";
 import { useTranslation } from "react-i18next";
 import { Row, Col, Container } from "reactstrap";
 import Image from "react-bootstrap/Image";
