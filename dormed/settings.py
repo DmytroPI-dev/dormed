@@ -17,7 +17,7 @@ from django.utils.translation import gettext_lazy as _
 # reading .env file
 env = environ.Env(
     # set casting, default value
-    DEBUG=(bool, False))
+    DEBUG=(bool, True))
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -43,9 +43,9 @@ SECURE_HSTS_PRELOAD = True
 # # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = True
 
-# ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*']
 #for localhost only
-ALLOWED_HOSTS = ["dormed-clinic.azurewebsites.net","127.0.0.1"]
+# ALLOWED_HOSTS = ["dormed-clinic.azurewebsites.net","127.0.0.1"]
 CSRF_TRUSTED_ORIGINS = ["https://dormed-clinic.azurewebsites.net"]
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
@@ -119,14 +119,22 @@ WSGI_APPLICATION = 'dormed.wsgi.application'
 #     }
 # }
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': os.environ['DBNAME_POL'],
+#         'HOST': os.environ['DBHOST_POL'],
+#         'USER': os.environ['DBUSER_POL'],
+#         'PASSWORD': os.environ['DBPASS'],
+#         'PORT':"3380" 
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ['DBNAME_POL'],
-        'HOST': os.environ['DBHOST_POL'],
-        'USER': os.environ['DBUSER_POL'],
-        'PASSWORD': os.environ['DBPASS'],
-        'PORT':"3380" 
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'mydatabase', # This is where you put the name of the db file. 
+                 # If one doesn't exist, it will be created at migration time.
     }
 }
 
