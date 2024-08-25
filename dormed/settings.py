@@ -43,13 +43,14 @@ SECURE_HSTS_PRELOAD = True
 # # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS = ['*']
 #for localhost only
-# ALLOWED_HOSTS = ["dormed-clinic.azurewebsites.net","127.0.0.1"]
-CSRF_TRUSTED_ORIGINS = ["https://dormed-clinic.azurewebsites.net"]
+ALLOWED_HOSTS = ["test.i-dmytro.pl","127.0.0.1", "34.133.151.248"]
+CSRF_TRUSTED_ORIGINS = ["http://test.i-dmytro.pl", "https://test.i-dmytro.pl"]
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
-    "https://dormed-clinic.azurewebsites.net",
+    "http://test.i-dmytro.pl",
+    "https://test.i-dmytro.pl"
     # Add any other allowed origins here as needed
 ]
 
@@ -67,7 +68,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'frontend',
-
 ]
 
 MIDDLEWARE = [
@@ -79,8 +79,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',    
 ]
 
 ROOT_URLCONF = 'dormed.urls'
@@ -107,36 +106,26 @@ WSGI_APPLICATION = 'dormed.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
-# hostname = os.environ['DBHOST']
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': os.environ["DBNAME"],
-#         'USER': os.environ['DBUSER'],
-#         'PORT':'3306',
-#         'HOST': hostname + ".mysql.database.azure.com",
-#         'PASSWORD': os.environ['DBPASS']        
-#     }
-# }
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': os.environ['DBNAME_POL'],
-#         'HOST': os.environ['DBHOST_POL'],
-#         'USER': os.environ['DBUSER_POL'],
-#         'PASSWORD': os.environ['DBPASS'],
-#         'PORT':"3380" 
-#     }
-# }
-
+hostname = os.environ['DBHOST']
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'mydatabase', # This is where you put the name of the db file. 
-                 # If one doesn't exist, it will be created at migration time.
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.environ["DBNAME"],
+        'USER': os.environ['DBUSER'],
+        'PORT':'3306',
+        'HOST': hostname,
+        'PASSWORD': os.environ['DBPASS']        
     }
 }
+
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': 'mydatabase', # This is where you put the name of the db file. 
+#                  # If one doesn't exist, it will be created at migration time.
+#     }
+# }
 
 
 # Password validation
@@ -189,15 +178,16 @@ STATICFILES_DIRS = [
     'frontend/static',
     'frontend/static/frontend',
     'frontend/static/images',
-]    
-STATIC_ROOT = BASE_DIR / "staticfiles"
+]
 
+STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-    
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')   
 MEDIA_URL = '/media/'
 
-# how to write `MEDIA_ROOT` if my media files are saved in `C:\IT\dormed-django\dormed\frontend\static\media`, where dormed - is a root directory of my project?
+# how to write `MEDIA_ROOT` if my media files are saved in
+# `C:\IT\dormed-django\dormed\frontend\static\media`,
+# where dormed - is a root directory of my project?
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field

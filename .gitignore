@@ -5,3 +5,5 @@ frontend/static/rooms
 frontend/static/images
 frontend/static/Dormed_photos
 fff.json
+.github\workflows
+logs.logs
