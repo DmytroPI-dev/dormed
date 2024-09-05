@@ -45,12 +45,12 @@ SECURE_HSTS_PRELOAD = True
 
 # ALLOWED_HOSTS = ['*']
 #for localhost only
-ALLOWED_HOSTS = ["test.i-dmytro.pl","127.0.0.1", "34.133.151.248"]
-CSRF_TRUSTED_ORIGINS = ["http://test.i-dmytro.pl", "https://test.i-dmytro.pl"]
+ALLOWED_HOSTS = ["clinic.i-dmytro.pl","127.0.0.1", "34.133.151.248"]
+CSRF_TRUSTED_ORIGINS = ["http://clinic.i-dmytro.pl", "https://clinic.i-dmytro.pl"]
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
-    "http://test.i-dmytro.pl",
-    "https://test.i-dmytro.pl"
+    "http://clinic.i-dmytro.pl",
+    "https://clinic.i-dmytro.pl"
     # Add any other allowed origins here as needed
 ]
 
@@ -106,14 +106,13 @@ WSGI_APPLICATION = 'dormed.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
-hostname = os.environ['DBHOST']
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': os.environ["DBNAME"],
         'USER': os.environ['DBUSER'],
         'PORT':'3306',
-        'HOST': hostname,
+        'HOST': os.environ['DBHOST'],
         'PASSWORD': os.environ['DBPASS']        
     }
 }
