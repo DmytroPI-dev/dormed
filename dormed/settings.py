@@ -45,12 +45,12 @@ SECURE_HSTS_PRELOAD = True
 
 # ALLOWED_HOSTS = ['*']
 #for localhost only
-ALLOWED_HOSTS = ["clinic.i-dmytro.pl","127.0.0.1", "34.133.151.248"]
-CSRF_TRUSTED_ORIGINS = ["http://clinic.i-dmytro.pl", "https://clinic.i-dmytro.pl"]
+ALLOWED_HOSTS = ["hotel.i-dmytro.org","127.0.0.1"]
+CSRF_TRUSTED_ORIGINS = ["http://hotel.i-dmytro.org", "https://hotel.i-dmytro.org"]
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
-    "http://clinic.i-dmytro.pl",
-    "https://clinic.i-dmytro.pl"
+    "http://hotel.i-dmytro.org",
+    "https://hotel.i-dmytro.org"
     # Add any other allowed origins here as needed
 ]
 
