@@ -7,3 +7,5 @@ frontend/static/Dormed_photos
 fff.json
 .github\workflows
 logs.logs
+venv/
+__pycache__
