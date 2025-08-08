@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu20.04
+    runs-on: ubuntu-latest
 
 
     steps:
@@ -22,11 +22,14 @@ jobs:
 
       - name: Create and start virtual environment
         run: |
+          echo "Creating virtual environment"
           python -m venv venv
           source venv/bin/activate
       
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          echo "Installing dependencies"
+          pip install -r requirements.txt
       
       - name: Install Node.js
         uses: actions/setup-node@v2
@@ -36,6 +39,7 @@ jobs:
       - name: Install and build frontend
         working-directory: frontend
         run: |
+            echo "Installing and building frontend"
             npm install
             npm run build
             cd ..
@@ -49,7 +53,7 @@ jobs:
             !venv/
 
   deploy:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs: build
     
     steps:
@@ -60,6 +64,7 @@ jobs:
           path: .
       - name: Set up SSH
         run: |
+          echo "Setting up SSH"
           mkdir -p ~/.ssh
           echo "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
@@ -67,6 +72,7 @@ jobs:
       
       - name: Deploy to Oracle VM
         run: |
+          echo "Deploying to Oracle VM"
           ssh ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} << 'EOF'
 
           # Paths
@@ -76,12 +82,14 @@ jobs:
           VENV_DIR=$BACKEND_DIR/venv
 
           # If project folder doesn't exist, create and clone repo
+          echo "Checking for project folder"
           if [ ! -d "$PROJECT_DIR" ]; then
             mkdir -p $PROJECT_DIR
             git clone git@github.com:<username>/<repo>.git $PROJECT_DIR
           fi
 
           cd $PROJECT_DIR
+          echo "Checking for repo"
           git pull origin main
 
           # Frontend build
@@ -90,6 +98,7 @@ jobs:
           npm run build
 
           # Backend setup
+          echo "Setting up backend"
           cd $BACKEND_DIR
           if [ ! -d "$VENV_DIR" ]; then
             python3 -m venv venv
