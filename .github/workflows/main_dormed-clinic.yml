@@ -34,10 +34,15 @@ jobs:
 
       - name: Build React frontend
         run: |
-          cd frontend
+          cd dormed/frontend
           npm install
           npm run build
           cd ..
+      - name: Check images presence
+        run: |
+          echo "=== Checking images ==="
+          cd dormed/frontend
+          ls -l static/frontend/images/fontanna_teznia.jpg 
 
       - name: Prepare deployment package
         run: |
