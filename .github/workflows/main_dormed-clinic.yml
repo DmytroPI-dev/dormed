@@ -1,5 +1,4 @@
-name: Build and deploy Dormed Clinic app to Oracle VM
-
+name: Build and deploy Dormed Clinic app from local self-hosted runner
 
 on:
   push:
@@ -8,110 +7,73 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
+  build-and-deploy:
+    runs-on: self-hosted   # This will run on your local machine
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Set up Python version
-        uses: actions/setup-python@v1
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.12'
+          python-version: '3.11'
 
       - name: Create and start virtual environment
         run: |
-          echo "Creating virtual environment"
           python -m venv venv
           source venv/bin/activate
-      
-      - name: Install dependencies
-        run: |
-          echo "Installing dependencies"
-          pip install -r requirements.txt
-      
-      - name: Install Node.js
-        uses: actions/setup-node@v2
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: '18'
-      
-      - name: Install and build frontend
-        working-directory: frontend
+
+      - name: Build React frontend
         run: |
-            echo "Installing and building frontend"
-            npm install
-            npm run build
-            cd ..
-
-      - name: Upload artifact for deployment jobs
-        uses: actions/upload-artifact@v2
-        with:
-          name: django-react-app
-          path: |
-            . 
-            !venv/
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    
-    steps:
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v2
-        with:
-          name: django-react-app
-          path: .
-      - name: Set up SSH
-        run: |
-          echo "Setting up SSH"
-          mkdir -p ~/.ssh
-          echo "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.ORACLE_HOST }} >> ~/.ssh/known_hosts
-      
-      - name: Deploy to Oracle VM
-        run: |
-          echo "Deploying to Oracle VM"
-          ssh ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} << 'EOF'
-
-          # Paths
-          PROJECT_DIR=/home/${USER}/app
-          BACKEND_DIR=$PROJECT_DIR/backend
-          FRONTEND_DIR=$PROJECT_DIR/frontend
-          VENV_DIR=$BACKEND_DIR/venv
-
-          # If project folder doesn't exist, create and clone repo
-          echo "Checking for project folder"
-          if [ ! -d "$PROJECT_DIR" ]; then
-            mkdir -p $PROJECT_DIR
-            git clone git@github.com:<username>/<repo>.git $PROJECT_DIR
-          fi
-
-          cd $PROJECT_DIR
-          echo "Checking for repo"
-          git pull origin main
-
-          # Frontend build
-          cd $FRONTEND_DIR
+          cd frontend
           npm install
           npm run build
+          cd ..
 
-          # Backend setup
-          echo "Setting up backend"
-          cd $BACKEND_DIR
-          if [ ! -d "$VENV_DIR" ]; then
-            python3 -m venv venv
-          fi
-          source venv/bin/activate
-          pip install -r ../requirements.txt
-          python manage.py migrate
-          python manage.py collectstatic --noinput
-          deactivate
+      - name: Prepare deployment package
+        run: |
+          tar --exclude=venv -czf deploy-package.tar.gz .
 
-          # Restart Gunicorn
-          sudo systemctl restart gunicorn
+      - name: Upload to Oracle VM
+        run: |
+          echo "=== Uploading build to Oracle VM ==="
+          scp -i "${{ secrets.ORACLE_SSH_KEY_FILE }}" -o StrictHostKeyChecking=no deploy-package.tar.gz ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:/tmp/
 
+      - name: Deploy on Oracle VM
+        run: |
+          echo "=== Deploying on Oracle VM ==="
+          ssh -i "${{ secrets.ORACLE_SSH_KEY_FILE }}" -o StrictHostKeyChecking=no ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} << 'EOF'
+            set -e
+            PROJECT_DIR=/home/${USER}/app
+            BACKEND_DIR=$PROJECT_DIR/backend
+            FRONTEND_DIR=$PROJECT_DIR/frontend
+            VENV_DIR=$BACKEND_DIR/venv
+
+            echo "=== Extracting new build ==="
+            rm -rf $PROJECT_DIR
+            mkdir -p $PROJECT_DIR
+            tar -xzf /tmp/deploy-package.tar.gz -C $PROJECT_DIR
+
+            echo "=== Installing backend dependencies ==="
+            cd $BACKEND_DIR
+            if [ ! -d "$VENV_DIR" ]; then
+              python3 -m venv venv
+            fi
+            source venv/bin/activate
+            pip install -r ../requirements.txt
+            python manage.py migrate
+            python manage.py collectstatic --noinput
+            deactivate
+
+            echo "=== Restarting Gunicorn ==="
+            sudo systemctl restart gunicorn
           EOF
-
-          
