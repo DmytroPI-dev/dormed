@@ -19,13 +19,20 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Create and start virtual environment
+      - name: Create and start Python virtual environment
+        # The venv should be created relative to the root of the repository,
+        # but activated from the backend directory to correctly find manage.py and requirements.txt
         run: |
           python -m venv venv
           source venv/bin/activate
+          # Navigate into the dormed_main directory which seems to be your backend
+          cd dormed_main
 
       - name: Install Python dependencies
-        run: pip install -r requirements.txt
+        # Install requirements.txt from the backend directory
+        run: |
+          source ../venv/bin/activate
+          pip install -r ../requirements.txt
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -33,20 +40,22 @@ jobs:
           node-version: '18'
 
       - name: Build React frontend
+        # Navigate into the 'frontend' directory for npm commands
         run: |
-          cd dormed/frontend
+          cd frontend
           npm install
           npm run build
-          cd ..
+
       - name: Check images presence
+        # Adjusted path for image checking
         run: |
           echo "=== Checking images ==="
-          cd dormed/frontend
-          ls -l static/frontend/images/fontanna_teznia.jpg 
+          ls -l frontend/src/static/frontend/images/fontanna_teznia.jpg # Corrected path based on tree.log
 
       - name: Prepare deployment package
+        # Create a tar.gz from the root of the repository, excluding the local venv
         run: |
-          tar --exclude=venv -czf deploy-package.tar.gz .
+          tar --exclude=venv --exclude=node_modules -czf deploy-package.tar.gz .
 
       - name: Upload to Oracle VM
         run: |
@@ -59,22 +68,24 @@ jobs:
           ssh -i "${{ secrets.ORACLE_SSH_KEY_FILE }}" -o StrictHostKeyChecking=no ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} << 'EOF'
             set -e
             PROJECT_DIR=/home/${USER}/app
-            BACKEND_DIR=$PROJECT_DIR/backend
+            BACKEND_DIR=$PROJECT_DIR/dormed_main # Corrected to dormed_main
             FRONTEND_DIR=$PROJECT_DIR/frontend
-            VENV_DIR=$BACKEND_DIR/venv
+            VENV_DIR=$PROJECT_DIR/venv # Venv is now at the project root
 
             echo "=== Extracting new build ==="
-            rm -rf $PROJECT_DIR
-            mkdir -p $PROJECT_DIR
-            tar -xzf /tmp/deploy-package.tar.gz -C $PROJECT_DIR
+            # Ensure the target directory for extraction is the project root
+            rm -rf "$PROJECT_DIR"/* # Clear existing files, but keep the directory
+            rm -rf "$PROJECT_DIR"/.[!.]* # Remove dotfiles/directories
+            tar -xzf /tmp/deploy-package.tar.gz -C "$PROJECT_DIR"
 
             echo "=== Installing backend dependencies ==="
-            cd $BACKEND_DIR
+            cd "$BACKEND_DIR"
+            # Recreate venv on the VM if it doesn't exist or is corrupted
             if [ ! -d "$VENV_DIR" ]; then
-              python3 -m venv venv
+              python3 -m venv "$VENV_DIR"
             fi
-            source venv/bin/activate
-            pip install -r ../requirements.txt
+            source "$VENV_DIR"/bin/activate # Activate from the project root's venv
+            pip install -r "$PROJECT_DIR"/requirements.txt # requirements.txt is at project root
             python manage.py migrate
             python manage.py collectstatic --noinput
             deactivate
