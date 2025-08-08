@@ -1,8 +1,5 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-# More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
+name: Build and deploy Dormed Clinic app to Oracle VM
 
-name: Build and deploy Python app to Azure Web App - dormed-clinic
 
 on:
   push:
@@ -12,7 +9,8 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu20.04
+
 
     steps:
       - uses: actions/checkout@v2
@@ -20,7 +18,7 @@ jobs:
       - name: Set up Python version
         uses: actions/setup-python@v1
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Create and start virtual environment
         run: |
@@ -29,35 +27,82 @@ jobs:
       
       - name: Install dependencies
         run: pip install -r requirements.txt
-        
-      # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
       
+      - name: Install Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18'
+      
+      - name: Install and build frontend
+        working-directory: frontend
+        run: |
+            npm install
+            npm run build
+            cd ..
+
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v2
         with:
-          name: python-app
+          name: django-react-app
           path: |
             . 
             !venv/
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: build
-    environment:
-      name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-
+    
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v2
         with:
-          name: python-app
+          name: django-react-app
           path: .
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrerts.ORACLE_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.ORACLE_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: Deploy to Oracle VM
+        run: |
+          ssh ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} << 'EOF'
+
+          # Paths
+          PROJECT_DIR=/home/${USER}/app
+          BACKEND_DIR=$PROJECT_DIR/backend
+          FRONTEND_DIR=$PROJECT_DIR/frontend
+          VENV_DIR=$BACKEND_DIR/venv
+
+          # If project folder doesn't exist, create and clone repo
+          if [ ! -d "$PROJECT_DIR" ]; then
+            mkdir -p $PROJECT_DIR
+            git clone git@github.com:<username>/<repo>.git $PROJECT_DIR
+          fi
+
+          cd $PROJECT_DIR
+          git pull origin main
+
+          # Frontend build
+          cd $FRONTEND_DIR
+          npm install
+          npm run build
+
+          # Backend setup
+          cd $BACKEND_DIR
+          if [ ! -d "$VENV_DIR" ]; then
+            python3 -m venv venv
+          fi
+          source venv/bin/activate
+          pip install -r ../requirements.txt
+          python manage.py migrate
+          python manage.py collectstatic --noinput
+          deactivate
+
+          # Restart Gunicorn
+          sudo systemctl restart gunicorn
+
+          EOF
+
           
-      - name: 'Deploy to Azure Web App'
-        uses: azure/webapps-deploy@v2
-        id: deploy-to-webapp
-        with:
-          app-name: 'dormed-clinic'
-          slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_003EAB3038E44BFBB7D01D3334C83F47 }}
