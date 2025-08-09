@@ -102,7 +102,12 @@ jobs:
             # Extract the tarball into $PROJECT_DIR, which will create $PROJECT_DIR/dormed/...
             tar -xzf /tmp/deploy-package.tar.gz -C "$PROJECT_DIR"
 
-            echo "=== Installing backend dependencies ==="
+            # Create the backend .env file on the VM using the GitHub Secret
+            echo "Creating backend .env file..."
+            echo "${{ secrets.DJANGO_ENV_VARS }}" > "$PROJECT_ROOT_ON_VM"/.env
+            chmod 600 "$PROJECT_ROOT_ON_VM"/.env # Set appropriate permissions
+
+            echo "=== Installing backend dependencies ==-"
             cd "$PROJECT_ROOT_ON_VM" # Change to the actual project root on VM
 
             # Load Django environment variables from the .env file in the root
