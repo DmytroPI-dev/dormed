@@ -57,12 +57,12 @@ jobs:
       - name: Upload to Oracle VM
         run: |
           echo "=== Uploading build to Oracle VM ==="
-          scp -i "${{ secrets.ORACLE_SSH_KEY_FILE }}" -o StrictHostKeyChecking=no deploy-package.tar.gz ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:/tmp/
+          scp -i "${{ secrets.ORACLE_SSH_KEY }}" -o StrictHostKeyChecking=no deploy-package.tar.gz ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:/tmp/
 
       - name: Deploy on Oracle VM
         run: |
           echo "=== Deploying on Oracle VM ==="
-          ssh -i "${{ secrets.ORACLE_SSH_KEY_FILE }}" -o StrictHostKeyChecking=no ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} << 'EOF'
+          ssh -i "${{ secrets.ORACLE_SSH_KEY }}" -o StrictHostKeyChecking=no ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} << 'EOF'
             set -e
             # PROJECT_DIR on VM is /home/${USER}/app
             # The tarball contains a 'dormed/' directory at its root, so the actual
