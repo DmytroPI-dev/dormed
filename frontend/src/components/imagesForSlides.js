@@ -1,7 +1,7 @@
-import matrix from 'static/Dormed_photos/matrix.jpg'
-import kosmetics from 'static/Dormed_photos/kosm2.jpg'
-import kosmetics2 from 'static/Dormed_photos/kosm.jpg' 
-import krio from 'static/Dormed_photos/krio.jpg'
+import matrix from "static/frontend/images/matrix.jpg"
+import kosmetics from "static/frontend/images/kosm.jpg"
+import kosmetics2 from "static/frontend/images/kosm.jpg" 
+import krio from "static/frontend/images/krio.jpg"
 
 
 
