@@ -3,7 +3,7 @@ import "../../static/css/custom.css";
 import { Row, Col } from "reactstrap";
 import { Instagram, Twitter, Facebook } from "react-bootstrap-icons";
 import { Trans, useTranslation } from "react-i18next";
-import dormedLogo from "../static/frontend/images/dormed-logo.png";
+import dormedLogo from "../../static/frontend/images/dormed-logo.png";
 
 
 function Footer() {
@@ -107,7 +107,7 @@ function Footer() {
           <img src={dormedLogo} className="footerLogo rotate" height={48} />
         </Col>
         <Col>
-         <p>© 2023 Dormed</p>
+         <p>© 2025 Dmytro Pishchenkov. All rights reserved.</p>
         </Col>
       </Row>
     </footer>
