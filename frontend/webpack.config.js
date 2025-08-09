@@ -1,4 +1,3 @@
-
 const path = require("path");
 const webpack = require("webpack");
 const Dotenv = require('dotenv-webpack');
@@ -10,9 +9,9 @@ module.exports = {
     filename: "[name].js",
     publicPath: '/static/frontend/',
   },
-  resolveConfig: {
+  resolve: {
     alias: {
-      static: resolve(__dirname, "static"),
+      static: path.resolve(__dirname, "static"), // maps "static/" to frontend/static/
     },
     extensions: [".js", ".jsx", ".json"]
   },
