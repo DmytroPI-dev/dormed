@@ -2,7 +2,7 @@ import "../../static/css/custom.css";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Container, Row, Col } from "reactstrap";
-import dormedLogo from "../../static/frontend/images/dormed-logo.png";
+import dormedLogo from "/static/frontend/images/dormed-logo.png";
 
 function Hero() {
   const { t } = useTranslation();
