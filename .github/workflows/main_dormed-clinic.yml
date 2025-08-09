@@ -35,6 +35,16 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Set up Frontend .env (for React build)
+        # Create the .env file in the frontend directory from a GitHub secret.
+        # This makes environment variables available during the React build process.
+        # Ensure your React environment variables are prefixed with REACT_APP_ (e.g., REACT_APP_API_URL).
+        run: |
+          echo "${{ secrets.FRONTEND_ENV_VARS }}" > frontend/.env
+          # For security, you might want to remove this file after the build if it contains very sensitive info
+          # but usually, the compiled JS is what contains the embedded vars.
+
+
       - name: Build React frontend
         # Navigate into the 'frontend' directory for npm commands.
         run: |
@@ -66,14 +76,17 @@ jobs:
       - name: Upload to Oracle VM
         run: |
           echo "=== Uploading build to Oracle VM ==="
-          scp -i "$SSH_KEY_PATH" -o StrictHostKeyChecking=no -vvv deploy-package.tar.gz ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:/tmp/
+          # Use the newly created SSH key file
+          scp -i "$SSH_KEY_PATH" -o StrictHostKeyChecking=no deploy-package.tar.gz ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:/tmp/
 
       - name: Deploy on Oracle VM
         run: |
           echo "=== Deploying on Oracle VM ==="
-          ssh -i "$SSH_KEY_PATH" -o StrictHostKeyChecking=no -vvv ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} << 'EOF'
+          # Use the newly created SSH key file
+          ssh -i "$SSH_KEY_PATH" -o StrictHostKeyChecking=no ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} << 'EOF'
             set -e
-            # PROJECT_DIR on VM is /home/${USER}/app
+            # Corrected: Use the explicit username from the secret to define PROJECT_DIR
+            PROJECT_DIR=/home/${{ secrets.ORACLE_USER }}/app
             # The tarball contains a 'dormed/' directory at its root, so the actual
             # project root on the VM will be nested: /home/${USER}/app/dormed
             PROJECT_ROOT_ON_VM=$PROJECT_DIR/dormed
@@ -91,6 +104,18 @@ jobs:
 
             echo "=== Installing backend dependencies ==="
             cd "$PROJECT_ROOT_ON_VM" # Change to the actual project root on VM
+
+            # Load Django environment variables from the .env file in the root
+            # IMPORTANT: Ensure your root .env file uses 'export VAR_NAME=value' format
+            # or is sourced by your Gunicorn/production server setup.
+            # For direct sourcing in this script:
+            if [ -f "$PROJECT_ROOT_ON_VM"/.env ]; then
+              echo "Sourcing backend .env file..."
+              source "$PROJECT_ROOT_ON_VM"/.env
+            else
+              echo "Warning: Backend .env file not found at $PROJECT_ROOT_ON_VM/.env"
+            fi
+
             # Recreate venv on the VM if it doesn't exist.
             if [ ! -d "$VENV_DIR" ]; then
               python3 -m venv "$VENV_DIR"
@@ -105,5 +130,7 @@ jobs:
             deactivate
 
             echo "=== Restarting Gunicorn ==="
+            # Gunicorn should be configured to pick up environment variables,
+            # either directly from the system or from the sourced .env file if it's restarted.
             sudo systemctl restart gunicorn
           EOF
