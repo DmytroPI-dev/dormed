@@ -43,13 +43,17 @@ jobs:
           npm run build
 
       - name: Prepare deployment package
-        # Add a small delay to ensure all previous writes are flushed
-        # before creating the tar archive.
+        # Create the tarball from the parent directory to avoid "file changed" errors.
+        # This will archive the 'dormed' directory itself, excluding specified folders.
         run: |
-          echo "Waiting 5 seconds for filesystem to settle..."
-          sleep 5 # Wait for 5 seconds
-          tar --exclude=venv --exclude=node_modules -czf deploy-package.tar.gz .
-          
+          cd .. # Move up one level to the _work directory
+          tar --exclude=dormed/venv \
+              --exclude=dormed/node_modules \
+              --exclude=dormed/frontend/node_modules \
+              -czf dormed-deploy-package.tar.gz dormed/
+          # Move the created tarball back into the original working directory
+          mv dormed-deploy-package.tar.gz dormed/deploy-package.tar.gz
+
       - name: Upload to Oracle VM
         run: |
           echo "=== Uploading build to Oracle VM ==="
@@ -60,24 +64,30 @@ jobs:
           echo "=== Deploying on Oracle VM ==="
           ssh -i "${{ secrets.ORACLE_SSH_KEY_FILE }}" -o StrictHostKeyChecking=no ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} << 'EOF'
             set -e
-            PROJECT_DIR=/home/${USER}/app
-            BACKEND_DIR=$PROJECT_DIR/dormed_main # Corrected to dormed_main
-            FRONTEND_DIR=$PROJECT_DIR/frontend
-            VENV_DIR=$PROJECT_DIR/venv # Venv is now at the project root
+            # PROJECT_DIR on VM is /home/${USER}/app
+            # The tarball contains a 'dormed/' directory at its root, so the actual
+            # project root on the VM will be nested: /home/${USER}/app/dormed
+            PROJECT_ROOT_ON_VM=$PROJECT_DIR/dormed
+
+            BACKEND_DIR=$PROJECT_ROOT_ON_VM/dormed_main
+            FRONTEND_DIR=$PROJECT_ROOT_ON_VM/frontend
+            VENV_DIR=$PROJECT_ROOT_ON_VM/venv # Venv is at the project root within the tar
 
             echo "=== Extracting new build ==="
-            # Ensure the target directory for extraction is the project root.
-            rm -rf "$PROJECT_DIR"/* # Clear existing files, but keep the directory
-            rm -rf "$PROJECT_DIR"/.[!.]* # Remove dotfiles/directories
+            # Remove previous deployment and create a clean project directory
+            rm -rf "$PROJECT_DIR"
+            mkdir -p "$PROJECT_DIR"
+            # Extract the tarball into $PROJECT_DIR, which will create $PROJECT_DIR/dormed/...
             tar -xzf /tmp/deploy-package.tar.gz -C "$PROJECT_DIR"
 
             echo "=== Installing backend dependencies ==="
+            cd "$PROJECT_ROOT_ON_VM" # Change to the actual project root on VM
             # Recreate venv on the VM if it doesn't exist.
             if [ ! -d "$VENV_DIR" ]; then
               python3 -m venv "$VENV_DIR"
             fi
             source "$VENV_DIR"/bin/activate # Activate from the project root's venv.
-            pip install -r "$PROJECT_DIR"/requirements.txt # requirements.txt is at project root.
+            pip install -r "$PROJECT_ROOT_ON_VM"/requirements.txt # requirements.txt is at project root.
 
             # Now, navigate to backend directory for Django commands.
             cd "$BACKEND_DIR"
