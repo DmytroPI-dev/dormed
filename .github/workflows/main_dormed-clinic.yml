@@ -99,7 +99,7 @@ jobs:
             # Remove previous deployment and create a clean project directory
             rm -rf "$PROJECT_DIR"
             mkdir -p "$PROJECT_DIR"
-            # Extract the tarball into $PROJECT_DIR, which will create $PROJECT_DIR/dormed/...
+            # Extract the tarball into "$PROJECT_DIR", which will create "$PROJECT_DIR"/dormed/...
             tar -xzf /tmp/deploy-package.tar.gz -C "$PROJECT_DIR"
 
             # Create the backend .env file on the VM using the GitHub Secret
@@ -107,13 +107,23 @@ jobs:
             echo "${{ secrets.DJANGO_ENV_VARS }}" > "$PROJECT_ROOT_ON_VM"/.env
             chmod 600 "$PROJECT_ROOT_ON_VM"/.env # Set appropriate permissions
 
-            echo "=== Installing backend dependencies ==-"
-            cd "$PROJECT_ROOT_ON_VM" # Change to the actual project root on VM
+            echo "=== Installing backend dependencies ==="
+            # Change to the actual project root on VM
+            cd "$PROJECT_ROOT_ON_VM"
+
+            # Recreate venv on the VM if it doesn't exist.
+            if [ ! -d "$VENV_DIR" ]; then
+              python3 -m venv "$VENV_DIR"
+            fi
+            source "$VENV_DIR"/bin/activate # Activate from the project root's venv.
+
+            # --- FIX: Upgrade pip, setuptools, and wheel first ---
+            echo "Upgrading pip, setuptools, and wheel..."
+            pip install --upgrade pip setuptools wheel
+
+            pip install -r "$PROJECT_ROOT_ON_VM"/requirements.txt # requirements.txt is at project root.
 
             # Load Django environment variables from the .env file in the root
-            # IMPORTANT: Ensure your root .env file uses 'export VAR_NAME=value' format
-            # or is sourced by your Gunicorn/production server setup.
-            # For direct sourcing in this script:
             if [ -f "$PROJECT_ROOT_ON_VM"/.env ]; then
               echo "Sourcing backend .env file..."
               source "$PROJECT_ROOT_ON_VM"/.env
@@ -121,14 +131,7 @@ jobs:
               echo "Warning: Backend .env file not found at $PROJECT_ROOT_ON_VM/.env"
             fi
 
-            # Recreate venv on the VM if it doesn't exist.
-            if [ ! -d "$VENV_DIR" ]; then
-              python3 -m venv "$VENV_DIR"
-            fi
-            source "$VENV_DIR"/bin/activate # Activate from the project root's venv.
-            pip install -r "$PROJECT_ROOT_ON_VM"/requirements.txt # requirements.txt is at project root.
-
-            # Now, navigate to backend directory for Django commands.
+            # --- FIX: Navigate to backend directory *before* running manage.py commands ---
             cd "$BACKEND_DIR"
             python manage.py migrate
             python manage.py collectstatic --noinput
