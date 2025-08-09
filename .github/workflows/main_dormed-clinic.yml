@@ -42,12 +42,6 @@ jobs:
           npm install
           npm run build
 
-      - name: Check images presence
-        # Adjusted path for image checking based on your file structure.
-        run: |
-          echo "=== Checking images ==="
-          ls -l frontend/src/static/frontend/images/fontanna_teznia.jpg
-
       - name: Prepare deployment package
         # Create a tar.gz from the root, excluding local venv and node_modules.
         run: |
