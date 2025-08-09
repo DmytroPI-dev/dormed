@@ -20,7 +20,7 @@ body {
 
 .tm-sector-1 {
   height: 750px;
-  background-image: url(../../src/static/frontend/images/teznia_7_v2.jpg);
+  background-image: url(../src/static/frontend/images/teznia_7_v2.jpg);
   background-size: cover;
   -webkit-clip-path: polygon(0px 0px, 100% 0px, 100% 84%, 0px 100%);
   clip-path: polygon(0px 0px, 100% 0px, 100% 84%, 0px 100%);
@@ -31,7 +31,7 @@ body {
 
 .tm-sector-3 {
   height: 790px;
-  background-image: url(../../src/static/frontend/images/teznia_3_v2.jpg);
+  background-image: url(../src/static/frontend/images/teznia_3_v2.jpg);
   background-size: cover;
   -webkit-clip-path: polygon(0px 0px, 100% 14%, 100% 86%, 0px 100%);
   clip-path: polygon(0px 0px, 100% 14%, 100% 86%, 0px 100%);
@@ -42,7 +42,7 @@ body {
 
 .tm-sector-5 {
   height: 790px;
-  background-image: url(../../src/static/frontend/fontanna_teznia.jpg);
+  background-image: url(../src/static/frontend/fontanna_teznia.jpg);
   background-size: cover;
   -webkit-clip-path: polygon(0px 0px, 100% 14%, 100% 86%, 0px 100%);
   clip-path: polygon(0px 0px, 100% 14%, 100% 86%, 0px 100%);
