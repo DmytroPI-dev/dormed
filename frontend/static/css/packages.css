@@ -42,7 +42,7 @@ body {
 
 .tm-sector-5 {
   height: 790px;
-  background-image: url("static/frontend/fontanna_teznia.jpg");
+  background-image: url("static/frontend/images/fontanna_teznia.jpg");
   background-size: cover;
   -webkit-clip-path: polygon(0px 0px, 100% 14%, 100% 86%, 0px 100%);
   clip-path: polygon(0px 0px, 100% 14%, 100% 86%, 0px 100%);
