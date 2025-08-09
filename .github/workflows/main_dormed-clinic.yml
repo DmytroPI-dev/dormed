@@ -35,6 +35,15 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Set up Frontend .env (for React build)
+        # Create the .env file in the frontend directory from a GitHub secret.
+        # This makes environment variables available during the React build process.
+        # Ensure your React environment variables are prefixed with REACT_APP_ (e.g., REACT_APP_API_URL).
+        run: |
+          echo "${{ secrets.FRONTEND_ENV_VARS }}" > frontend/.env
+          # For security, you might want to remove this file after the build if it contains very sensitive info
+          # but usually, the compiled JS is what contains the embedded vars.
+
       - name: Build React frontend
         # Navigate into the 'frontend' directory for npm commands.
         run: |
@@ -43,14 +52,31 @@ jobs:
           npm run build
 
       - name: Prepare deployment package
-        # Create a tar.gz from the root, excluding local venv and node_modules.
+        # Create the tarball from the parent directory to avoid "file changed" errors.
+        # This will archive the 'dormed' directory itself, excluding specified folders.
         run: |
-          tar --exclude=venv --exclude=node_modules -czf deploy-package.tar.gz .
+          cd .. # Move up one level to the _work directory
+          tar --exclude=dormed/venv \
+              --exclude=dormed/node_modules \
+              --exclude=dormed/frontend/node_modules \
+              -czf dormed-deploy-package.tar.gz dormed/
+          # Move the created tarball back into the original working directory
+          mv dormed-deploy-package.tar.gz dormed/deploy-package.tar.gz
+
+      - name: Set up SSH key
+        # Write the SSH private key content from the secret to a file
+        # and set appropriate permissions.
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/id_rsa_oracle
+          chmod 600 ~/.ssh/id_rsa_oracle
+          echo "SSH_KEY_PATH=~/.ssh/id_rsa_oracle" >> $GITHUB_ENV # Set an environment variable for the key path
 
       - name: Upload to Oracle VM
         run: |
-          echo "=== Uploading build to Oracle VM ==="
-          scp -i "${{ secrets.ORACLE_SSH_KEY_FILE }}" -o StrictHostKeyChecking=no deploy-package.tar.gz ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:/tmp/
+          echo "=== Uploading build to Oracle VM ==-"
+          # Use the newly created SSH key file
+          scp -i "$SSH_KEY_PATH" -o StrictHostKeyChecking=no deploy-package.tar.gz ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:/tmp/
 
       - name: Deploy on Oracle VM
         run: |
