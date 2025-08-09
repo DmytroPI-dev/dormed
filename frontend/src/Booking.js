@@ -16,7 +16,7 @@ const importAll = (r) => {
 };
 
 importAll(
-  require.context("../static/rooms/", false, /\.(png|jpe?g|svg)$/)
+  require.context("/static/fromtend/rooms/", false, /\.(png|jpe?g|svg)$/)
 );
 
 const Booking = () => {
