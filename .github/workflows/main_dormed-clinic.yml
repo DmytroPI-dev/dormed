@@ -137,7 +137,6 @@ jobs:
             # Now that we're in PROJECT_ROOT_ON_VM (which is also BACKEND_DIR),
             # manage.py commands can be run directly.
             python manage.py migrate
-            python manage.py collectstatic --noinput
             deactivate
 
             echo "=== Restarting Gunicorn ==-"
