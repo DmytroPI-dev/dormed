@@ -16,17 +16,17 @@ body, html {
   
   }
   .bgimg-1 {
-    background-image: url("../images/WillaDorota.jpeg");
+    background-image: url("../../src/static/frontend/images/WillaDorota.jpeg");
     min-height: 95vh;
   }
   
   .bgimg-2 {
-    background-image: url("../images/bushes.jpg");
+    background-image: url("../../src/static/frontend/images/bushes.jpg");
     min-height: 95vh;
   }
   
   .bgimg-3 {
-    background-image: url("../images/Backyard.jpeg");
+    background-image: url("../../src/static/frontend/images/Backyard.jpeg");
     min-height: 95vh;
   }
   
