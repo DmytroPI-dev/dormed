@@ -43,10 +43,13 @@ jobs:
           npm run build
 
       - name: Prepare deployment package
-        # Create a tar.gz from the root, excluding local venv and node_modules.
+        # Add a small delay to ensure all previous writes are flushed
+        # before creating the tar archive.
         run: |
+          echo "Waiting 5 seconds for filesystem to settle..."
+          sleep 5 # Wait for 5 seconds
           tar --exclude=venv --exclude=node_modules -czf deploy-package.tar.gz .
-
+          
       - name: Upload to Oracle VM
         run: |
           echo "=== Uploading build to Oracle VM ==="
