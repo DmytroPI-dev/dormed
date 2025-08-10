@@ -12,14 +12,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          # This ensures the workspace is clean before checkout, crucial for self-hosted runners
-          clean: true
-
+        
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12'
+          python-version: '3.11'
 
       - name: Create Python virtual environment
         # Create the venv in the root of the repository.
