@@ -49,15 +49,18 @@ jobs:
           npm run build
 
       - name: Prepare deployment package
-        # Create a tarball of the entire checked-out project directory ('.'),
-        # excluding the virtual environment and node_modules folders.
-        # The tarball 'deploy-package.tar.gz' will be created at the root of the workspace.
-        run: |
-          tar --exclude=./venv \
-              --exclude=./node_modules \
-              --exclude=./frontend/node_modules \
-              -czf deploy-package.tar.gz .
 
+        # Create the tarball from the parent directory to avoid "file changed" errors.
+        # This will archive the 'dormed' directory itself, excluding specified folders.
+
+        run: |
+          cd .. # Move up one level to the _work directory
+          tar --exclude=dormed/venv \
+          --exclude=dormed/node_modules \
+          --exclude=dormed/frontend/node_modules \
+          -czf dormed-deploy-package.tar.gz dormed/
+          mv dormed-deploy-package.tar.gz dormed/deploy-package.tar.gz
+      
       - name: Upload deployment artifact
         uses: actions/upload-artifact@v4
         with:
@@ -69,7 +72,7 @@ jobs:
     needs: build # This job will only run after the 'build' job has completed successfully
     steps:
       - name: Download deployment artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: dormed-deploy-package # Downloads the artifact to the current working directory
 
