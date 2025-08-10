@@ -11,10 +11,7 @@ jobs:
     runs-on: self-hosted   # This will run on your local machine
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          # This ensures the workspace is clean before checkout, crucial for self-hosted runners
-          clean: true
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -33,7 +30,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
 
@@ -62,7 +59,7 @@ jobs:
               -czf deploy-package.tar.gz .
 
       - name: Upload deployment artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dormed-deploy-package # Name of the artifact to be downloaded later
           path: deploy-package.tar.gz  # Path to the artifact within the workspace
