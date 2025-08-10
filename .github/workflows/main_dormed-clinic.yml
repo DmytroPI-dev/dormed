@@ -7,17 +7,19 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: self-hosted   # This will run on your local machine
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          # This ensures the workspace is clean before checkout, crucial for self-hosted runners
+          clean: true
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Create Python virtual environment
         # Create the venv in the root of the repository.
@@ -41,8 +43,6 @@ jobs:
         # Ensure your React environment variables are prefixed with REACT_APP_ (e.g., REACT_APP_API_URL).
         run: |
           echo "${{ secrets.FRONTEND_ENV_VARS }}" > frontend/.env
-          # For security, you might want to remove this file after the build if it contains very sensitive info
-          # but usually, the compiled JS is what contains the embedded vars.
 
       - name: Build React frontend
         # Navigate into the 'frontend' directory for npm commands.
@@ -52,16 +52,29 @@ jobs:
           npm run build
 
       - name: Prepare deployment package
-        # Create the tarball from the parent directory to avoid "file changed" errors.
-        # This will archive the 'dormed' directory itself, excluding specified folders.
+        # Create a tarball of the entire checked-out project directory ('.'),
+        # excluding the virtual environment and node_modules folders.
+        # The tarball 'deploy-package.tar.gz' will be created at the root of the workspace.
         run: |
-          cd .. # Move up one level to the _work directory
-          tar --exclude=dormed/venv \
-              --exclude=dormed/node_modules \
-              --exclude=dormed/frontend/node_modules \
-              -czf dormed-deploy-package.tar.gz dormed/
-          # Move the created tarball back into the original working directory
-          mv dormed-deploy-package.tar.gz dormed/deploy-package.tar.gz
+          tar --exclude=./venv \
+              --exclude=./node_modules \
+              --exclude=./frontend/node_modules \
+              -czf deploy-package.tar.gz .
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: dormed-deploy-package # Name of the artifact to be downloaded later
+          path: deploy-package.tar.gz  # Path to the artifact within the workspace
+
+  deploy:
+    runs-on: self-hosted
+    needs: build # This job will only run after the 'build' job has completed successfully
+    steps:
+      - name: Download deployment artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: dormed-deploy-package # Downloads the artifact to the current working directory
 
       - name: Set up SSH key
         # Write the SSH private key content from the secret to a file
@@ -70,39 +83,43 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/id_rsa_oracle
           chmod 600 ~/.ssh/id_rsa_oracle
-          echo "SSH_KEY_PATH=~/.ssh/id_rsa_oracle" >> $GITHUB_ENV # Set an environment variable for the key path
+          # Set an environment variable for the key path, making it available for subsequent steps
+          echo "SSH_KEY_PATH=~/.ssh/id_rsa_oracle" >> $GITHUB_ENV
 
       - name: Upload to Oracle VM
         run: |
-          echo "=== Uploading build to Oracle VM ==-"
-          # Use the newly created SSH key file
+          echo "=== Uploading build to Oracle VM ==="
+          # Use the newly created SSH key file to SCP the tarball to the VM's /tmp directory
           scp -i "$SSH_KEY_PATH" -o StrictHostKeyChecking=no deploy-package.tar.gz ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:/tmp/
 
       - name: Deploy on Oracle VM
         run: |
-          echo "=== Deploying on Oracle VM ==-"
-          # Use the newly created SSH key file
+          echo "=== Deploying on Oracle VM ==="
+          # Connect to the Oracle VM via SSH and execute deployment commands
           ssh -i "$SSH_KEY_PATH" -o StrictHostKeyChecking=no ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} << 'EOF'
-            set -e
+            set -e # Exit immediately if a command exits with a non-zero status.
+
             # Define the base directory where the tarball will be extracted.
             # This is the user's home directory, as per your desired location.
             INSTALL_BASE_DIR="/home/${{ secrets.ORACLE_USER }}"
 
-            # The actual root of the Dormed project on the VM, where manage.py resides.
-            # This will be /home/your_user/dormed/ after extraction.
-            PROJECT_ROOT_ON_VM="$INSTALL_BASE_DIR/dormed"
+            # The actual root of the Dormed project on the VM after extraction.
+            # Since the tarball now contains the project contents directly (not a 'dormed/' folder),
+            # the project root will be the install base directory.
+            PROJECT_ROOT_ON_VM="$INSTALL_BASE_DIR"
 
             # Set backend, frontend, and venv directories relative to PROJECT_ROOT_ON_VM
             BACKEND_DIR="$PROJECT_ROOT_ON_VM" # manage.py is located here
             FRONTEND_DIR="$PROJECT_ROOT_ON_VM/frontend"
             VENV_DIR="$PROJECT_ROOT_ON_VM/venv" # Venv is at the project root within the tar
 
-            echo "=== Extracting new build ==-"
-            # Remove previous deployment of the dormed project itself.
-            rm -rf "$PROJECT_ROOT_ON_VM"
-            # Ensure the base installation directory exists
-            mkdir -p "$INSTALL_BASE_DIR"
-            # Extract the tarball into INSTALL_BASE_DIR, which will create INSTALL_BASE_DIR/dormed/...
+            echo "=== Extracting new build ==="
+            # Remove previous deployment of the dormed project by clearing the target directory
+            rm -rf "$PROJECT_BASE_DIR"/* # This should be PROJECT_ROOT_ON_VM instead, if we want to remove existing files within it
+            # A safer way to clean up if the directory is `INSTALL_BASE_DIR/dormed`
+            # For this new tarball strategy, simply remove contents of INSTALL_BASE_DIR or ensure it's empty
+            mkdir -p "$INSTALL_BASE_DIR" # Ensure the base installation directory exists
+            # Extract the tarball into INSTALL_BASE_DIR. The tarball contains the contents directly.
             tar -xzf /tmp/deploy-package.tar.gz -C "$INSTALL_BASE_DIR"
 
             # Create the backend .env file on the VM using the GitHub Secret
@@ -110,7 +127,7 @@ jobs:
             echo "${{ secrets.DJANGO_ENV_VARS }}" > "$PROJECT_ROOT_ON_VM"/.env
             chmod 600 "$PROJECT_ROOT_ON_VM"/.env # Set appropriate permissions
 
-            echo "=== Installing backend dependencies ==-"
+            echo "=== Installing backend dependencies ==="
             # Change to the actual project root on VM for venv activation and pip install
             cd "$PROJECT_ROOT_ON_VM"
 
@@ -139,6 +156,7 @@ jobs:
             python manage.py migrate
             deactivate
 
-            echo "=== Restarting Gunicorn ==-"
-            sudo systemctl restart gunicorn
+            echo "=== Restarting Gunicorn ==="
+            sudo systemctl restart dormed
+            rm /tmp/deploy-package.tar.gz # Clean up the tarball after deployment
           EOF
