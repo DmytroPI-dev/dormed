@@ -65,7 +65,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dormed-deploy-package # Name of the artifact to be downloaded later
-          path: deploy-package.tar.gz  # Path to the artifact within the workspace
+          path: dormed/deploy-package.tar.gz  # Path to the artifact within the workspace
 
   deploy:
     runs-on: self-hosted
