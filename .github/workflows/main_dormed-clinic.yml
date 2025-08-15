@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -68,7 +68,7 @@ jobs:
           path: deploy-package.tar.gz  # Path to the artifact within the workspace
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: build # This job will only run after the 'build' job has completed successfully
     steps:
       - name: Download deployment artifact
