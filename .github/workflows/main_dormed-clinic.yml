@@ -1,4 +1,4 @@
-name: Build and deploy Dormed Clinic app from local self-hosted runner
+name: Build and Deploy Application
 
 on:
   push:
@@ -6,157 +6,163 @@ on:
       - main
   workflow_dispatch:
 
+# Use a repository variable for the app name for reusability.
+# Go to Repo Settings > Secrets and variables > Actions > Variables to set this.
+env:
+  APP_NAME: ${{ vars.APP_NAME || 'dormed' }}
+
 jobs:
   build:
+    name: Build Frontend and Package
     runs-on: self-hosted
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-
-      - name: Create Python virtual environment
-        # Create the venv in the root of the repository.
-        run: |
-          python -m venv venv
-
-      - name: Install Python dependencies
-        # Activate the venv from the root and install requirements.txt (which is also in the root).
-        run: |
-          source venv/bin/activate
-          pip install -r requirements.txt
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
-      - name: Set up Frontend .env (for React build)
-        # Create the .env file in the frontend directory from a GitHub secret.
-        # This makes environment variables available during the React build process.
-        # Ensure your React environment variables are prefixed with REACT_APP_ (e.g., REACT_APP_API_URL).
-        run: |
-          echo "${{ secrets.FRONTEND_ENV_VARS }}" > frontend/.env
+      - name: Set up Frontend .env for React build
+        run: echo "${{ secrets.FRONTEND_ENV_VARS }}" > frontend/.env
 
       - name: Build React frontend
-        # Navigate into the 'frontend' directory for npm commands.
+        working-directory: ./frontend
         run: |
-          cd frontend
           npm install
           npm run build
 
-      - name: Prepare deployment package
-
-        # Create the tarball from the parent directory to avoid "file changed" errors.
-        # This will archive the 'dormed' directory itself, excluding specified folders.
-
+      - name: Create deployment package
         run: |
-          cd .. # Move up one level to the _work directory
-          tar --exclude=dormed/venv \
-          --exclude=dormed/node_modules \
-          --exclude=dormed/frontend/node_modules \
-          -czf dormed-deploy-package.tar.gz dormed/
-          mv dormed-deploy-package.tar.gz dormed/deploy-package.tar.gz
+          tar --exclude-from='.gitignore' \
+              --exclude='.git' \
+              --exclude='frontend/node_modules' \
+              --exclude='venv' \
+              -czf deploy-package.tar.gz .
       
       - name: Upload deployment artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dormed-deploy-package # Name of the artifact to be downloaded later
-          path: deploy-package.tar.gz  # Path to the artifact within the workspace
+          name: ${{ env.APP_NAME }}-deploy-package
+          path: deploy-package.tar.gz
 
   deploy:
+    name: Deploy to Oracle Cloud VM
     runs-on: self-hosted
-    needs: build # This job will only run after the 'build' job has completed successfully
+    needs: build
     steps:
       - name: Download deployment artifact
         uses: actions/download-artifact@v4
         with:
-          name: dormed-deploy-package # Downloads the artifact to the current working directory
+          name: ${{ env.APP_NAME }}-deploy-package
 
       - name: Set up SSH key
-        # Write the SSH private key content from the secret to a file
-        # and set appropriate permissions.
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/id_rsa_oracle
           chmod 600 ~/.ssh/id_rsa_oracle
-          # Set an environment variable for the key path, making it available for subsequent steps
           echo "SSH_KEY_PATH=~/.ssh/id_rsa_oracle" >> $GITHUB_ENV
 
       - name: Upload to Oracle VM
         run: |
-          echo "=== Uploading build to Oracle VM ==="
-          # Use the newly created SSH key file to SCP the tarball to the VM's /tmp directory
-          scp -i "$SSH_KEY_PATH" -o StrictHostKeyChecking=no deploy-package.tar.gz ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:/tmp/
+          scp -i ${{ env.SSH_KEY_PATH }} -o StrictHostKeyChecking=no deploy-package.tar.gz ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:/tmp/
 
       - name: Deploy on Oracle VM
         run: |
-          echo "=== Deploying on Oracle VM ==="
-          # Connect to the Oracle VM via SSH and execute deployment commands
-          ssh -i "$SSH_KEY_PATH" -o StrictHostKeyChecking=no ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} << 'EOF'
-            set -e # Exit immediately if a command exits with a non-zero status.
+          ssh -i ${{ env.SSH_KEY_PATH }} -o StrictHostKeyChecking=no ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} 'bash -s' <<'EOF'
+            set -e # Exit immediately if a command fails
 
-            # Define the base directory where the tarball will be extracted.
-            # This is the user's home directory, as per your desired location.
-            INSTALL_BASE_DIR="/home/${{ secrets.ORACLE_USER }}"
+            # --- Variables ---
+            APP_NAME="${{ env.APP_NAME }}"
+            PROJECT_DIR="/home/${{ secrets.ORACLE_USER }}/${APP_NAME}"
+            VENV_DIR="$PROJECT_DIR/venv"
+            DB_NAME="${APP_NAME}_db"
+            DB_USER="${APP_NAME}_user"
+            DB_PASSWORD="${{ secrets.DB_PASSWORD }}" # Assumes you have this secret
 
-            # The actual root of the Dormed project on the VM after extraction.
-            # Since the tarball now contains the project contents directly (not a 'dormed/' folder),
-            # the project root will be the install base directory.
-            PROJECT_ROOT_ON_VM="$INSTALL_BASE_DIR"
+            # --- 1. System & MariaDB Setup ---
+            echo "=== Updating system packages and installing dependencies ==="
+            sudo apt-get update -y
+            sudo apt-get install -y mariadb-server libmariadb-dev-compat libmariadb-dev build-essential nginx python3-venv
 
-            # Set backend, frontend, and venv directories relative to PROJECT_ROOT_ON_VM
-            BACKEND_DIR="$PROJECT_ROOT_ON_VM" # manage.py is located here
-            FRONTEND_DIR="$PROJECT_ROOT_ON_VM/frontend"
-            VENV_DIR="$PROJECT_ROOT_ON_VM/venv" # Venv is at the project root within the tar
+            echo "=== Securing MariaDB and creating database ==="
+            sudo mysql -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME};"
+            sudo mysql -e "CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';"
+            sudo mysql -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';"
+            sudo mysql -e "FLUSH PRIVILEGES;"
 
-            echo "=== Extracting new build ==="
-            # Remove previous deployment of the dormed project by clearing the target directory
-            rm -rf "$PROJECT_BASE_DIR"/* # This should be PROJECT_ROOT_ON_VM instead, if we want to remove existing files within it
-            # A safer way to clean up if the directory is `INSTALL_BASE_DIR/dormed`
-            # For this new tarball strategy, simply remove contents of INSTALL_BASE_DIR or ensure it's empty
-            mkdir -p "$INSTALL_BASE_DIR" # Ensure the base installation directory exists
-            # Extract the tarball into INSTALL_BASE_DIR. The tarball contains the contents directly.
-            tar -xzf /tmp/deploy-package.tar.gz -C "$INSTALL_BASE_DIR"
+            # --- 2. Application Deployment ---
+            echo "=== Setting up application directory ==="
+            mkdir -p $PROJECT_DIR
+            # Clean previous content before extracting
+            find $PROJECT_DIR -mindepth 1 -delete
+            tar -xzf /tmp/deploy-package.tar.gz -C $PROJECT_DIR
+            rm /tmp/deploy-package.tar.gz
 
-            # Create the backend .env file on the VM using the GitHub Secret
-            echo "Creating backend .env file..."
-            echo "${{ secrets.DJANGO_ENV_VARS }}" > "$PROJECT_ROOT_ON_VM"/.env
-            chmod 600 "$PROJECT_ROOT_ON_VM"/.env # Set appropriate permissions
+            echo "=== Creating backend .env file ==="
+            echo "${{ secrets.DJANGO_ENV_VARS }}" > $PROJECT_DIR/.env
+            chmod 600 $PROJECT_DIR/.env
 
-            echo "=== Installing backend dependencies ==="
-            # Change to the actual project root on VM for venv activation and pip install
-            cd "$PROJECT_ROOT_ON_VM"
-
-            # Recreate venv on the VM if it doesn't exist.
-            if [ ! -d "$VENV_DIR" ]; then
-              python3 -m venv "$VENV_DIR"
-            fi
-            source "$VENV_DIR"/bin/activate # Activate from the project root's venv.
-
-            # Upgrade pip, setuptools, and wheel first
-            echo "Upgrading pip, setuptools, and wheel..."
-            pip install --upgrade pip setuptools wheel
-
-            pip install -r "$PROJECT_ROOT_ON_VM"/requirements.txt # requirements.txt is at project root.
-
-            # Load Django environment variables from the .env file in the root
-            if [ -f "$PROJECT_ROOT_ON_VM"/.env ]; then
-              echo "Sourcing backend .env file..."
-              source "$PROJECT_ROOT_ON_VM"/.env
-            else
-              echo "Warning: Backend .env file not found at $PROJECT_ROOT_ON_VM/.env"
-            fi
-
-            # Now that we're in PROJECT_ROOT_ON_VM (which is also BACKEND_DIR),
-            # manage.py commands can be run directly.
-            python manage.py migrate
+            # --- 3. Python Environment & Dependencies ---
+            echo "=== Setting up Python virtual environment ==="
+            python3 -m venv $VENV_DIR
+            source $VENV_DIR/bin/activate
+            pip install --upgrade pip
+            pip install -r $PROJECT_DIR/requirements.txt
+            
+            # --- 4. Django Setup ---
+            echo "=== Running Django migrations and collecting static files ==="
+            python $PROJECT_DIR/manage.py migrate
+            python $PROJECT_DIR/manage.py collectstatic --noinput
             deactivate
 
-            echo "=== Restarting Gunicorn ==="
-            sudo systemctl restart dormed
-            rm /tmp/deploy-package.tar.gz # Clean up the tarball after deployment
+            # --- 5. Gunicorn Service Setup ---
+            echo "=== Creating Gunicorn systemd service file ==="
+            sudo tee /etc/systemd/system/${APP_NAME}.service > /dev/null <<'GUNICORN_SERVICE'
+            [Unit]
+            Description=gunicorn daemon for ${APP_NAME}
+            After=network.target
+
+            [Service]
+            User=${{ secrets.ORACLE_USER }}
+            Group=www-data
+            WorkingDirectory=${PROJECT_DIR}
+            # Assumes your project has a wsgi file at <APP_NAME>/wsgi.py
+            ExecStart=${VENV_DIR}/bin/gunicorn --workers 3 --bind unix:/run/${APP_NAME}.sock ${APP_NAME}.wsgi:application
+
+            [Install]
+            WantedBy=multi-user.target
+            GUNICORN_SERVICE
+            
+            sudo systemctl daemon-reload
+            sudo systemctl restart ${APP_NAME}
+            sudo systemctl enable ${APP_NAME}
+
+            # --- 6. Nginx Setup ---
+            echo "=== Configuring Nginx ==="
+            sudo rm -f /etc/nginx/sites-enabled/default
+            sudo tee /etc/nginx/sites-available/${APP_NAME} > /dev/null <<'NGINX_CONF'
+            server {
+                listen 80;
+                server_name ${{ secrets.DOMAIN_NAME }}; # e.g., yourdomain.com
+
+                location = /favicon.ico { access_log off; log_not_found off; }
+                
+                location /static/ {
+                    root ${PROJECT_DIR};
+                }
+
+                location / {
+                    include proxy_params;
+                    proxy_pass http://unix:/run/${APP_NAME}.sock;
+                }
+            }
+            NGINX_CONF
+
+            sudo ln -sf /etc/nginx/sites-available/${APP_NAME} /etc/nginx/sites-enabled/
+            sudo nginx -t # Test nginx configuration
+            sudo systemctl restart nginx
+            
+            echo "=== Deployment successful for ${APP_NAME}! ==="
           EOF
