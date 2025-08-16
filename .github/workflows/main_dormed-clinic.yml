@@ -109,7 +109,7 @@ jobs:
             sudo tee /etc/nginx/sites-available/${APP_NAME} > /dev/null <<NGINX_CONF
             server {
                 listen 80;
-                server_name ${SUBDOMAIN}.{{ secrets.DOMAIN_NAME }}; # e.g., yourdomain.com
+                server_name ${SUBDOMAIN}.${{ secrets.DOMAIN_NAME }}; # e.g., yourdomain.com
                 location = /favicon.ico { access_log off; log_not_found off; }              
                 location /static/ {
                     root ${PROJECT_DIR};
