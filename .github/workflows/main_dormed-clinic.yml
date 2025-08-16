@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  pull_request:
   workflow_dispatch:
 
 # Use a repository variable for the app name for reusability.
@@ -166,3 +167,6 @@ jobs:
             
             echo "=== Deployment successful for ${APP_NAME}! ==="
           EOF
+
+
+git@github.com:DmytroPI-dev/dormed.git
