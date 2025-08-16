@@ -116,8 +116,7 @@ jobs:
                     proxy_pass http://unix:/run/${APP_NAME}.sock;
                 }
             }
-            NGINX_CONF
-
+          NGINX_CONF
 
             sudo ln -sf /etc/nginx/sites-available/${APP_NAME} /etc/nginx/sites-enabled/
             sudo nginx -t # Test nginx configuration
@@ -167,7 +166,7 @@ jobs:
 
             [Install]
             WantedBy=multi-user.target
-            GUNICORN_SERVICE
+          GUNICORN_SERVICE
             
             sudo systemctl daemon-reload
             sudo systemctl restart ${APP_NAME}
