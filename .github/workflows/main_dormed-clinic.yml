@@ -89,7 +89,7 @@ jobs:
             echo "=== Updating system packages and installing dependencies ==="
             sudo apt-get update -y
             sudo apt install pkg-config
-            sudo apt-get install -y mariadb-server libmariadb-dev-compat libmariadb-dev build-essential nginx python3-venv
+            sudo apt-get install -y mariadb-server libmariadb-dev-compat libmariadb-dev build-essential nginx python3-venv python3-dev
 
             echo "=== Securing MariaDB and creating database ==="
             sudo mysql -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME};"
