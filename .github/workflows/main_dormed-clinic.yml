@@ -97,7 +97,37 @@ jobs:
             sudo mysql -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';"
             sudo mysql -e "FLUSH PRIVILEGES;"
 
-            # --- 2. Application Deployment ---
+            echo "=== Verifying MariaDB service is active ==="
+            sudo systemctl is-active --quiet mariadb
+
+            # --- 2. Nginx Setup ---
+            echo "=== Configuring Nginx ==="
+            sudo rm -f /etc/nginx/sites-enabled/default
+            sudo tee /etc/nginx/sites-available/${APP_NAME} > /dev/null <<'NGINX_CONF'
+            server {
+                listen 80;
+                server_name ${{ secrets.DOMAIN_NAME }}; # e.g., yourdomain.com
+                location = /favicon.ico { access_log off; log_not_found off; }              
+                location /static/ {
+                    root ${PROJECT_DIR};
+                }
+                location / {
+                    include proxy_params;
+                    proxy_pass http://unix:/run/${APP_NAME}.sock;
+                }
+            }
+            NGINX_CONF
+
+
+            sudo ln -sf /etc/nginx/sites-available/${APP_NAME} /etc/nginx/sites-enabled/
+            sudo nginx -t # Test nginx configuration
+            sudo systemctl restart nginx
+            
+            echo "=== Verifying Nginx service is active ==="
+            sudo systemctl is-active --quiet nginx
+
+
+            # --- 3. Application Deployment ---
             echo "=== Setting up application directory ==="
             mkdir -p $PROJECT_DIR
             # Clean previous content before extracting
@@ -109,19 +139,19 @@ jobs:
             echo "${{ secrets.DJANGO_ENV_VARS }}" > $PROJECT_DIR/.env
             chmod 600 $PROJECT_DIR/.env
 
-            # --- 3. Python Environment & Dependencies ---
+            # --- 4. Python Environment & Dependencies ---
             echo "=== Setting up Python virtual environment ==="
             python3 -m venv $VENV_DIR
             source $VENV_DIR/bin/activate
             pip install --upgrade pip
             pip install -r $PROJECT_DIR/requirements.txt
             
-            # --- 4. Django Setup ---
+            # --- 5. Django Setup ---
             echo "=== Running Django migrations and collecting static files ==="
             python $PROJECT_DIR/manage.py migrate
             deactivate
 
-            # --- 5. Gunicorn Service Setup ---
+            # --- 6. Gunicorn Service Setup ---
             echo "=== Creating Gunicorn systemd service file ==="
             sudo tee /etc/systemd/system/${APP_NAME}.service > /dev/null <<'GUNICORN_SERVICE'
             [Unit]
@@ -143,30 +173,5 @@ jobs:
             sudo systemctl restart ${APP_NAME}
             sudo systemctl enable ${APP_NAME}
 
-            # --- 6. Nginx Setup ---
-            echo "=== Configuring Nginx ==="
-            sudo rm -f /etc/nginx/sites-enabled/default
-            sudo tee /etc/nginx/sites-available/${APP_NAME} > /dev/null <<'NGINX_CONF'
-            server {
-                listen 80;
-                server_name ${{ secrets.DOMAIN_NAME }}; # e.g., yourdomain.com
-
-                location = /favicon.ico { access_log off; log_not_found off; }
-                
-                location /static/ {
-                    root ${PROJECT_DIR};
-                }
-
-                location / {
-                    include proxy_params;
-                    proxy_pass http://unix:/run/${APP_NAME}.sock;
-                }
-            }
-            NGINX_CONF
-
-            sudo ln -sf /etc/nginx/sites-available/${APP_NAME} /etc/nginx/sites-enabled/
-            sudo nginx -t # Test nginx configuration
-            sudo systemctl restart nginx
-            
             echo "=== Deployment successful for ${APP_NAME}! ==="
           EOF
