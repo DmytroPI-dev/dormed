@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
   workflow_dispatch:
 
 # Use a repository variable for the app name for reusability.
@@ -36,6 +35,7 @@ jobs:
 
       - name: Create deployment package
         run: |
+          echo "Current path is: $(pwd)"
           tar --exclude-from='.gitignore' \
               --exclude='.git' \
               --exclude='frontend/node_modules' \
