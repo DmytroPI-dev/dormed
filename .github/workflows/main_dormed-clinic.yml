@@ -119,7 +119,6 @@ jobs:
             # --- 4. Django Setup ---
             echo "=== Running Django migrations and collecting static files ==="
             python $PROJECT_DIR/manage.py migrate
-            python $PROJECT_DIR/manage.py collectstatic --noinput
             deactivate
 
             # --- 5. Gunicorn Service Setup ---
