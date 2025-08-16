@@ -135,11 +135,12 @@ jobs:
             rm /tmp/deploy-package.tar.gz
 
             echo "=== Creating backend .env file ==="
-            echo "${{ secrets.DJANGO_ENV_VARS }}" > $PROJECT_DIR/.env
+            echo "${{ secrets.BACKEND_ENV_VARS }}" > $PROJECT_DIR/.env
             chmod 600 $PROJECT_DIR/.env
 
             # --- 4. Python Environment & Dependencies ---
             echo "=== Setting up Python virtual environment ==="
+            cd $PROJECT_DIR
             python3 -m venv $VENV_DIR
             source $VENV_DIR/bin/activate
             pip install --upgrade pip
