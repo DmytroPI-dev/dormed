@@ -10,6 +10,7 @@ on:
 # Go to Repo Settings > Secrets and variables > Actions > Variables to set this.
 env:
   APP_NAME: ${{ vars.APP_NAME || 'dormed' }}
+  SUBDOMAIN: ${{ vars.SUBDOMAIN || 'hotel' }}
 
 jobs:
   build:
@@ -84,6 +85,8 @@ jobs:
             DB_NAME="${APP_NAME}_db"
             DB_USER="${APP_NAME}_user"
             DB_PASSWORD="${{ secrets.DB_PASSWORD }}" # Assumes you have this secret
+            SUBDOMAIN="${{ env.SUBDOMAIN }}"
+
 
             # --- 1. System & MariaDB Setup ---
             echo "=== Updating system packages and installing dependencies ==="
@@ -106,7 +109,7 @@ jobs:
             sudo tee /etc/nginx/sites-available/${APP_NAME} > /dev/null <<NGINX_CONF
             server {
                 listen 80;
-                server_name ${{ secrets.DOMAIN_NAME }}; # e.g., yourdomain.com
+                server_name ${SUBDOMAIN}.{{ secrets.DOMAIN_NAME }}; # e.g., yourdomain.com
                 location = /favicon.ico { access_log off; log_not_found off; }              
                 location /static/ {
                     root ${PROJECT_DIR};
@@ -152,26 +155,39 @@ jobs:
             deactivate
 
             # --- 6. Gunicorn Service Setup ---
+            echo "=== Creating Gunicorn systemd socket file ==="
+            sudo tee /etc/systemd/system/${APP_NAME}.socket > /dev/null <<GUNICORN_SOCKET
+            [Unit]
+            Description=gunicorn socket for ${APP_NAME}
+
+            [Socket]
+            ListenStream=/run/${APP_NAME}.sock
+
+            [Install]
+            WantedBy=sockets.target
+          GUNICORN_SOCKET
+
             echo "=== Creating Gunicorn systemd service file ==="
             sudo tee /etc/systemd/system/${APP_NAME}.service > /dev/null <<GUNICORN_SERVICE
             [Unit]
             Description=gunicorn daemon for ${APP_NAME}
+            Requires=${APP_NAME}.socket
             After=network.target
 
             [Service]
             User=${{ secrets.ORACLE_USER }}
             Group=www-data
             WorkingDirectory=${PROJECT_DIR}
-            # Assumes your project has a wsgi file at <APP_NAME>/wsgi.py
-            ExecStart=${VENV_DIR}/bin/gunicorn --workers 3 --bind unix:/run/${APP_NAME}.sock ${APP_NAME}.wsgi:application
+            ExecStart=${VENV_DIR}/bin/gunicorn --workers 3 ${APP_NAME}.wsgi:application
 
             [Install]
             WantedBy=multi-user.target
           GUNICORN_SERVICE
             
+            echo "=== Starting and enabling Gunicorn socket ==="
             sudo systemctl daemon-reload
-            sudo systemctl restart ${APP_NAME}
-            sudo systemctl enable ${APP_NAME}
-
+            sudo systemctl start ${APP_NAME}.socket
+            sudo systemctl enable ${APP_NAME}.socket
+            
             echo "=== Deployment successful for ${APP_NAME}! ==="
           EOF
