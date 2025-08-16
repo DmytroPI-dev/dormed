@@ -36,9 +36,7 @@ jobs:
       - name: Create deployment package
         run: |
           echo "Current path is: $(pwd)"
-          cd ../
-          echo "New path is: $(pwd)"
-          ls -la
+          ls 
           tar --exclude-from='.gitignore' \
               --exclude='.git' \
               --exclude='frontend/node_modules' \
