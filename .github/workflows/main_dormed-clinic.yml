@@ -167,6 +167,3 @@ jobs:
             
             echo "=== Deployment successful for ${APP_NAME}! ==="
           EOF
-
-
-git@github.com:DmytroPI-dev/dormed.git
