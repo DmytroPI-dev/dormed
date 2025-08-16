@@ -155,13 +155,16 @@ jobs:
             deactivate
 
             # --- 6. Gunicorn Service Setup ---
-            echo "=== Creating Gunicorn systemd socket file ==="
+            echo "=== Creating Gunicorn systemd socket file with permissions ==="
             sudo tee /etc/systemd/system/${APP_NAME}.socket > /dev/null <<GUNICORN_SOCKET
             [Unit]
             Description=gunicorn socket for ${APP_NAME}
 
             [Socket]
             ListenStream=/run/${APP_NAME}.sock
+            SocketUser=${{ secrets.ORACLE_USER }}
+            SocketGroup=www-data
+            SocketMode=0660
 
             [Install]
             WantedBy=sockets.target
@@ -184,9 +187,10 @@ jobs:
             WantedBy=multi-user.target
           GUNICORN_SERVICE
             
-            echo "=== Starting and enabling Gunicorn socket ==="
+            echo "=== Restarting and enabling Gunicorn socket and service ==="
             sudo systemctl daemon-reload
-            sudo systemctl start ${APP_NAME}.socket
+            sudo systemctl restart ${APP_NAME}.socket
+            sudo systemctl restart ${APP_NAME}.service
             sudo systemctl enable ${APP_NAME}.socket
             
             echo "=== Deployment successful for ${APP_NAME}! ==="
