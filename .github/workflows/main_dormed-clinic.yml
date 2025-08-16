@@ -135,7 +135,7 @@ jobs:
             rm /tmp/deploy-package.tar.gz
 
             echo "=== Creating backend .env file ==="
-            echo "${{ secrets.DJANGO_ENV_VARS }}" > $PROJECT_DIR/.env
+            echo "${{ secrets.BACKEND_ENV_VARS }}" > $PROJECT_DIR/.env
             chmod 600 $PROJECT_DIR/.env
 
             # --- 4. Python Environment & Dependencies ---
