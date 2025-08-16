@@ -88,6 +88,7 @@ jobs:
             # --- 1. System & MariaDB Setup ---
             echo "=== Updating system packages and installing dependencies ==="
             sudo apt-get update -y
+            sudo apt install pkg-config
             sudo apt-get install -y mariadb-server libmariadb-dev-compat libmariadb-dev build-essential nginx python3-venv
 
             echo "=== Securing MariaDB and creating database ==="
