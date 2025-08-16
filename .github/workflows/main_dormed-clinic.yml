@@ -103,7 +103,7 @@ jobs:
             # --- 2. Nginx Setup ---
             echo "=== Configuring Nginx ==="
             sudo rm -f /etc/nginx/sites-enabled/default
-            sudo tee /etc/nginx/sites-available/${APP_NAME} > /dev/null <<'NGINX_CONF'
+            sudo tee /etc/nginx/sites-available/${APP_NAME} > /dev/null <<NGINX_CONF
             server {
                 listen 80;
                 server_name ${{ secrets.DOMAIN_NAME }}; # e.g., yourdomain.com
@@ -152,7 +152,7 @@ jobs:
 
             # --- 6. Gunicorn Service Setup ---
             echo "=== Creating Gunicorn systemd service file ==="
-            sudo tee /etc/systemd/system/${APP_NAME}.service > /dev/null <<'GUNICORN_SERVICE'
+            sudo tee /etc/systemd/system/${APP_NAME}.service > /dev/null <<GUNICORN_SERVICE
             [Unit]
             Description=gunicorn daemon for ${APP_NAME}
             After=network.target
