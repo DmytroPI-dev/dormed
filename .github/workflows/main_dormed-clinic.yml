@@ -15,7 +15,7 @@ env:
 jobs:
   build:
     name: Build Frontend and Package
-    runs-on: ubuntu-latest # It's best practice to use GitHub-hosted runners for builds
+    runs-on: self-hosted
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,6 +36,7 @@ jobs:
 
       - name: Create deployment package
         run: |
+          touch deploy-package.tar.gz
           tar --exclude-from='.gitignore' \
               --exclude='.git' \
               --exclude='frontend/node_modules' \
@@ -51,7 +52,7 @@ jobs:
 
   deploy:
     name: Deploy to Oracle Cloud VM
-    runs-on: ubuntu-latest # Using a GitHub-hosted runner for deployment is also recommended
+    runs-on: self-hosted
     needs: build
     steps:
       - name: Download deployment artifact
