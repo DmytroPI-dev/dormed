@@ -1,4 +1,4 @@
-name: Build and Deploy Application
+name: Build and Deploy Application to Oracle Linux
 
 on:
   push:
@@ -15,7 +15,7 @@ env:
 jobs:
   build:
     name: Build Frontend and Package
-    runs-on: self-hosted
+    runs-on: ubuntu-latest # It's best practice to use GitHub-hosted runners for builds
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,9 +36,6 @@ jobs:
 
       - name: Create deployment package
         run: |
-          echo "Current path is: $(pwd)"
-          ls 
-          touch deploy-package.tar.gz
           tar --exclude-from='.gitignore' \
               --exclude='.git' \
               --exclude='frontend/node_modules' \
@@ -54,7 +51,7 @@ jobs:
 
   deploy:
     name: Deploy to Oracle Cloud VM
-    runs-on: self-hosted
+    runs-on: ubuntu-latest # Using a GitHub-hosted runner for deployment is also recommended
     needs: build
     steps:
       - name: Download deployment artifact
@@ -84,17 +81,24 @@ jobs:
             VENV_DIR="$PROJECT_DIR/venv"
             DB_NAME="${APP_NAME}_db"
             DB_USER="${APP_NAME}_user"
-            DB_PASSWORD="${{ secrets.DB_PASSWORD }}" # Assumes you have this secret
+            DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
             SUBDOMAIN="${{ env.SUBDOMAIN }}"
 
 
-            # --- 1. System & MariaDB Setup ---
+            # --- 1. System, Firewall & MariaDB Setup (Oracle Linux) ---
             echo "=== Updating system packages and installing dependencies ==="
-            sudo apt-get update -y
-            sudo apt install pkg-config -y
-            sudo apt-get install -y mariadb-server libmariadb-dev-compat libmariadb-dev build-essential nginx python3-venv python3-dev
+            sudo dnf -y update
+            # NOTE: Switched apt-get to dnf and updated package names for Oracle Linux
+            sudo dnf -y install mariadb-server mariadb-devel nginx python3-virtualenv python3-devel
+            sudo dnf -y groupinstall "Development Tools"
 
-            echo "=== Securing MariaDB and creating database ==="
+            echo "=== Configuring Firewall for HTTP/HTTPS ==="
+            sudo firewall-cmd --permanent --add-service=http
+            sudo firewall-cmd --permanent --add-service=https
+            sudo firewall-cmd --reload
+
+            echo "=== Starting and Securing MariaDB ==="
+            sudo systemctl enable --now mariadb
             sudo mysql -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME};"
             sudo mysql -e "CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';"
             sudo mysql -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';"
@@ -109,7 +113,7 @@ jobs:
             sudo tee /etc/nginx/sites-available/${APP_NAME} > /dev/null <<NGINX_CONF
             server {
                 listen 80;
-                server_name ${SUBDOMAIN}.${{ secrets.DOMAIN_NAME }}; # e.g., yourdomain.com
+                server_name ${SUBDOMAIN}.${{ secrets.DOMAIN_NAME }};
                 location = /favicon.ico { access_log off; log_not_found off; }              
                 location /static/ {
                     root ${PROJECT_DIR};
@@ -122,7 +126,7 @@ jobs:
           NGINX_CONF
 
             sudo ln -sf /etc/nginx/sites-available/${APP_NAME} /etc/nginx/sites-enabled/
-            sudo nginx -t # Test nginx configuration
+            sudo nginx -t
             sudo systemctl restart nginx
             
             echo "=== Verifying Nginx service is active ==="
@@ -132,7 +136,6 @@ jobs:
             # --- 3. Application Deployment ---
             echo "=== Setting up application directory ==="
             mkdir -p $PROJECT_DIR
-            # Clean previous content before extracting
             find $PROJECT_DIR -mindepth 1 -delete
             tar -xzf /tmp/deploy-package.tar.gz -C $PROJECT_DIR
             rm /tmp/deploy-package.tar.gz
@@ -147,17 +150,15 @@ jobs:
             python3 -m venv $VENV_DIR
             source $VENV_DIR/bin/activate
             pip install --upgrade pip
-            pip install --upgrade typing-extensions
-            pip install --upgrade django-modeltranslation
             pip install -r $PROJECT_DIR/requirements.txt
             
             # --- 5. Django Setup ---
-            echo "=== Running Django migrations and collecting static files ==="
+            echo "=== Running Django migrations ==="
             python $PROJECT_DIR/manage.py migrate
             deactivate
 
-            # --- 6. Gunicorn Service Setup ---
-            echo "=== Creating Gunicorn systemd socket file with permissions ==="
+            # --- 6. Gunicorn Service Setup (Oracle Linux) ---
+            echo "=== Creating Gunicorn systemd socket file ==="
             sudo tee /etc/systemd/system/${APP_NAME}.socket > /dev/null <<GUNICORN_SOCKET
             [Unit]
             Description=gunicorn socket for ${APP_NAME}
@@ -165,7 +166,7 @@ jobs:
             [Socket]
             ListenStream=/run/${APP_NAME}.sock
             SocketUser=${{ secrets.ORACLE_USER }}
-            SocketGroup=www-data
+            SocketGroup=nginx
             SocketMode=0660
 
             [Install]
@@ -181,7 +182,7 @@ jobs:
 
             [Service]
             User=${{ secrets.ORACLE_USER }}
-            Group=www-data
+            Group=nginx
             WorkingDirectory=${PROJECT_DIR}
             ExecStart=${VENV_DIR}/bin/gunicorn --workers 3 ${APP_NAME}.wsgi:application
 
@@ -189,6 +190,10 @@ jobs:
             WantedBy=multi-user.target
           GUNICORN_SERVICE
             
+            echo "=== Configuring SELinux for Nginx Proxy ==="
+            # This is often required on RHEL-based systems like Oracle Linux
+            sudo setsebool -P httpd_can_network_connect 1
+
             echo "=== Restarting and enabling Gunicorn socket and service ==="
             sudo systemctl daemon-reload
             sudo systemctl restart ${APP_NAME}.socket
