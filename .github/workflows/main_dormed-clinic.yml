@@ -110,7 +110,7 @@ jobs:
                 server_name ${SUBDOMAIN}.${{ secrets.DOMAIN_NAME }};
                 location = /favicon.ico { access_log off; log_not_found off; }              
                 location /static/ {
-                    root ${PROJECT_DIR};
+                    alias ${PROJECT_DIR}/static/;
                 }
                 location / {
                     include proxy_params;
