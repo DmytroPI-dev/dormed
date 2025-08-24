@@ -1,12 +1,13 @@
 # Data source to get the list of available images for the Always Free tier
 data "oci_core_images" "always_free_images" {
-  compartment_id = var.compartment_ocid
-  operating_system = "Oracle Linux"
-  operating_system_version = "9"
-  shape = "VM.Standard.E2.1.Micro"
-  sort_by = "TIMECREATED"
-  sort_order = "DESC"
+  compartment_id           = var.compartment_ocid
+  operating_system         = "Canonical Ubuntu"
+  operating_system_version = "24.04"
+  shape                    = "VM.Standard.E2.1.Micro"
+  sort_by                  = "TIMECREATED"
+  sort_order               = "DESC"
 }
+
 
 # Creates an Always Free tier compute instance
 resource "oci_core_instance" "always_free_instance" {
@@ -15,10 +16,6 @@ resource "oci_core_instance" "always_free_instance" {
   display_name        = "projects-vm"
   shape               = "VM.Standard.E2.1.Micro"
 
-  shape_config {
-    ocpus = 1
-    memory_in_gbs = 1
-  }
 
   create_vnic_details {
     subnet_id        = oci_core_subnet.public_subnet.id
