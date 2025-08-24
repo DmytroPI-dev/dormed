@@ -84,6 +84,7 @@ jobs:
             DB_USER="${APP_NAME}_user"
             DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
             SUBDOMAIN="${{ env.SUBDOMAIN }}"
+            DOMAIN_NAME="${{ secrets.DOMAIN_NAME }}"
 
 
             # --- 1. System & MariaDB Setup (Ubuntu) ---
@@ -102,16 +103,33 @@ jobs:
             sudo systemctl is-active --quiet mariadb
 
             # --- 2. Nginx Setup ---
-            echo "=== Configuring Nginx ==="
+            echo "=== Configuring Nginx for HTTPS ==="
             sudo rm -f /etc/nginx/sites-enabled/default
             sudo tee /etc/nginx/sites-available/${APP_NAME} > /dev/null <<NGINX_CONF
             server {
                 listen 80;
-                server_name ${SUBDOMAIN}.${{ secrets.DOMAIN_NAME }};
+                server_name ${SUBDOMAIN}.${DOMAIN_NAME};
+                # Redirect all HTTP traffic to HTTPS
+                return 301 https://\$host\$request_uri;
+            }
+
+            server {
+                listen 443 ssl;
+                server_name ${SUBDOMAIN}.${DOMAIN_NAME};
+
+                # SSL configuration from Certbot
+                ssl_certificate /etc/letsencrypt/live/${SUBDOMAIN}.${DOMAIN_NAME}/fullchain.pem;
+                ssl_certificate_key /etc/letsencrypt/live/${SUBDOMAIN}.${DOMAIN_NAME}/privkey.pem;
+                include /etc/letsencrypt/options-ssl-nginx.conf;
+                ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+                # Application configuration
                 location = /favicon.ico { access_log off; log_not_found off; }              
+                
                 location /static/ {
                     alias ${PROJECT_DIR}/static/;
                 }
+
                 location / {
                     include proxy_params;
                     proxy_pass http://unix:/run/${APP_NAME}.sock;
@@ -149,13 +167,24 @@ jobs:
             pip install -r $PROJECT_DIR/requirements.txt
             
             # --- 5. Django Setup ---
-            echo "=== Running Django migrations ==="
+            echo "=== Running Django migrations and collecting static files ==="
             python $PROJECT_DIR/manage.py migrate
             python $PROJECT_DIR/manage.py collectstatic --noinput
+
+            echo "=== Setting project directory permissions ==="
             sudo chown -R ${{ secrets.ORACLE_USER }}:www-data $PROJECT_DIR
             sudo chmod -R 775 $PROJECT_DIR
             sudo chmod 755 /home/${{ secrets.ORACLE_USER }}
 
+            echo "=== Creating Django superuser (if it does not exist) ==="
+            # Source the .env file to load all backend variables into the environment
+            set -a
+            source $PROJECT_DIR/.env
+            set +a
+            
+            # Run the createsuperuser command; it will use the DJANGO_SUPERUSER_* vars from the environment
+            python $PROJECT_DIR/manage.py createsuperuser --no-input || true
+            
             deactivate
 
             # --- 6. Gunicorn Service Setup (Ubuntu) ---
