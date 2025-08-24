@@ -121,7 +121,6 @@ jobs:
 
             sudo ln -sf /etc/nginx/sites-available/${APP_NAME} /etc/nginx/sites-enabled/
             sudo nginx -t
-            sudo chmod 755 /home/ubuntu
             sudo systemctl restart nginx
             
             echo "=== Verifying Nginx service is active ==="
@@ -153,6 +152,9 @@ jobs:
             echo "=== Running Django migrations ==="
             python $PROJECT_DIR/manage.py migrate
             python $PROJECT_DIR/manage.py collectstatic --noinput
+            sudo chown -R ${{ secrets.ORACLE_USER }}:www-data $PROJECT_DIR
+            sudo chmod -R 775 $PROJECT_DIR
+            sudo chmod 755 /home/${{ secrets.ORACLE_USER }}
 
             deactivate
 
