@@ -121,6 +121,7 @@ jobs:
 
             sudo ln -sf /etc/nginx/sites-available/${APP_NAME} /etc/nginx/sites-enabled/
             sudo nginx -t
+            sudo chmod 755 /home/ubuntu
             sudo systemctl restart nginx
             
             echo "=== Verifying Nginx service is active ==="
