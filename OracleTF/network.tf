@@ -74,6 +74,17 @@ resource "oci_core_security_list" "web_and_ssh_security_list" {
     }
   }
 
+  # MariaDB (3306)
+  ingress_security_rules {
+    protocol = "6"
+    source   = "0.0.0.0/0"
+    tcp_options {
+      min = 3306
+      max = 3306
+    }
+    stateless = false
+  }
+
   egress_security_rules {
     protocol    = "all"
     destination = "0.0.0.0/0"
