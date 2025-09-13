@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "webpack --mode development --watch",
-    "build:django": "webpack --config webpack.django.js --mode production",
+    "build": "webpack --mode production",
     "build:go": "webpack --config webpack.go.js --mode production"
   },
   "keywords": [],
