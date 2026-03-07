@@ -55,6 +55,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Download deployment artifact
         uses: actions/download-artifact@v4
         with:
@@ -67,163 +70,41 @@ jobs:
           chmod 600 ~/.ssh/id_rsa_oracle
           echo "SSH_KEY_PATH=~/.ssh/id_rsa_oracle" >> $GITHUB_ENV
 
-      - name: Upload to Oracle VM
+      - name: Upload deployment package and scripts to VM
         run: |
           scp -i ${{ env.SSH_KEY_PATH }} -o StrictHostKeyChecking=no deploy-package.tar.gz ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:/tmp/
+          scp -i ${{ env.SSH_KEY_PATH }} -o StrictHostKeyChecking=no scripts/*.sh ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:/tmp/
+          ssh -i ${{ env.SSH_KEY_PATH }} -o StrictHostKeyChecking=no ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} "chmod +x /tmp/*.sh"
 
-      - name: Deploy on Oracle VM
+      - name: Step 1 - Provision Infrastructure
         run: |
-          ssh -i ${{ env.SSH_KEY_PATH }} -o StrictHostKeyChecking=no ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} 'bash -s' <<'EOF'
-            set -e # Exit immediately if a command fails
+          ssh -i ${{ env.SSH_KEY_PATH }} -o StrictHostKeyChecking=no ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} \
+            "APP_NAME=${{ env.APP_NAME }} \
+             PROJECT_DIR=/home/${{ secrets.ORACLE_USER }}/${{ env.APP_NAME }} \
+             DB_NAME=${{ env.APP_NAME }}_db \
+             DB_USER=${{ env.APP_NAME }}_user \
+             DB_PASSWORD='${{ secrets.DB_PASSWORD }}' \
+             SUBDOMAIN=${{ env.SUBDOMAIN }} \
+             DOMAIN_NAME=${{ secrets.DOMAIN_NAME }} \
+             DOMAIN_FQDN=${{ env.SUBDOMAIN }}.${{ secrets.DOMAIN_NAME }} \
+             EMAIL=${{ secrets.EMAIL }} \
+             /tmp/provision_infrastructure.sh"
 
-            # --- Variables ---
-            APP_NAME="${{ env.APP_NAME }}"
-            PROJECT_DIR="/home/${{ secrets.ORACLE_USER }}/${APP_NAME}"
-            VENV_DIR="$PROJECT_DIR/venv"
-            DB_NAME="${APP_NAME}_db"
-            DB_USER="${APP_NAME}_user"
-            DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
-            SUBDOMAIN="${{ env.SUBDOMAIN }}"
-            DOMAIN_NAME="${{ secrets.DOMAIN_NAME }}"
-            EMAIL="${{ secrets.EMAIL }}"
+      - name: Step 2 - Setup Gunicorn Service
+        run: |
+          ssh -i ${{ env.SSH_KEY_PATH }} -o StrictHostKeyChecking=no ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} \
+            "APP_NAME=${{ env.APP_NAME }} \
+             PROJECT_DIR=/home/${{ secrets.ORACLE_USER }}/${{ env.APP_NAME }} \
+             VENV_DIR=/home/${{ secrets.ORACLE_USER }}/${{ env.APP_NAME }}/venv \
+             DEPLOY_USER=${{ secrets.ORACLE_USER }} \
+             /tmp/setup_gunicorn.sh"
 
-            # --- 1. System & MariaDB Setup (Ubuntu) ---
-            echo "=== Updating system packages and installing dependencies ==="
-            sudo apt-get update -y
-            sudo apt install pkg-config -y
-            sudo apt-get install -y mariadb-server libmariadb-dev-compat libmariadb-dev build-essential nginx python3-venv python3-dev
-
-            echo "=== Securing MariaDB and creating database ==="
-            sudo mysql -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME};"
-            sudo mysql -e "CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';"
-            sudo mysql -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';"
-            sudo mysql -e "FLUSH PRIVILEGES;"
-
-            echo "=== Verifying MariaDB service is active ==="
-            sudo systemctl is-active --quiet mariadb
-
-            # --- 2. Nginx Setup ---
-            echo "=== Installing Certbot if missing ==="
-            if ! command -v certbot >/dev/null 2>&1; then
-              sudo apt install -y certbot python3-certbot-nginx
-            fi
-  
-            DOMAIN_FQDN="${SUBDOMAIN}.${DOMAIN_NAME}"
-            if sudo certbot certificates | grep -q "Domains: $DOMAIN_FQDN"; then
-            echo "Certificate for $DOMAIN_FQDN exists. Attempting renewal..."
-            sudo certbot renew --nginx --quiet
-            else
-            echo "Certificate for $DOMAIN_FQDN not found. Requesting a new one..."
-            sudo certbot --nginx -d "$DOMAIN_FQDN" --agree-tos --email "$EMAIL" --non-interactive
-            fi
-
-            # --- Configure Nginx ---
-            echo "=== Configuring Nginx for HTTPS ==="
-            sudo rm -f /etc/nginx/sites-enabled/default
-            sudo tee /etc/nginx/sites-available/${APP_NAME} > /dev/null <<NGINX_CONF
-            server {
-            listen 80;
-            server_name ${DOMAIN_FQDN};
-            # Redirect all HTTP traffic to HTTPS
-            return 301 https://\$host\$request_uri;
-            }
-
-          server {
-              listen 443 ssl;
-              server_name ${DOMAIN_FQDN};
-
-              # SSL configuration from Certbot
-              ssl_certificate /etc/letsencrypt/live/${DOMAIN_FQDN}/fullchain.pem;
-              ssl_certificate_key /etc/letsencrypt/live/${DOMAIN_FQDN}/privkey.pem;
-              include /etc/letsencrypt/options-ssl-nginx.conf;
-              ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
-
-              # Application configuration
-              location = /favicon.ico { access_log off; log_not_found off; }              
-              
-              location /static/ {
-                  alias ${PROJECT_DIR}/static/;
-              }
-
-              location / {
-                  include proxy_params;
-                  proxy_pass http://unix:${PROJECT_DIR}/${APP_NAME}.sock;
-              }
-          }
-          NGINX_CONF
-
-            sudo ln -sf /etc/nginx/sites-available/${APP_NAME} /etc/nginx/sites-enabled/
-            sudo nginx -t
-            sudo systemctl restart nginx
-
-            
-            echo "=== Verifying Nginx service is active ==="
-            sudo systemctl is-active --quiet nginx
-
-
-            # --- 3. Application Deployment ---
-            echo "=== Setting up application directory ==="
-            mkdir -p $PROJECT_DIR
-            find $PROJECT_DIR -mindepth 1 -delete
-            tar -xzf /tmp/deploy-package.tar.gz -C $PROJECT_DIR
-            rm /tmp/deploy-package.tar.gz
-
-            echo "=== Creating backend .env file ==="
-            echo "${{ secrets.BACKEND_ENV_VARS }}" > $PROJECT_DIR/.env
-            chmod 600 $PROJECT_DIR/.env
-
-            # --- 4. Python Environment & Dependencies ---
-            echo "=== Setting up Python virtual environment ==="
-            cd $PROJECT_DIR
-            python3 -m venv $VENV_DIR
-            source $VENV_DIR/bin/activate
-            pip install --upgrade pip
-            pip install --upgrade typing-extensions
-            pip install --upgrade django-modeltranslation
-            pip install -r $PROJECT_DIR/requirements.txt
-            
-            # --- 5. Django Setup ---
-            echo "=== Running Django migrations and collecting static files ==="
-            python $PROJECT_DIR/manage.py migrate
-            python $PROJECT_DIR/manage.py collectstatic --noinput
-
-            echo "=== Setting project directory permissions ==="
-            sudo chown -R ${{ secrets.ORACLE_USER }}:www-data $PROJECT_DIR
-            sudo chmod -R 775 $PROJECT_DIR
-            sudo chmod 755 /home/${{ secrets.ORACLE_USER }}
-
-            echo "=== Creating Django superuser (if it does not exist) ==="
-            # Source the .env file to load all backend variables into the environment
-            set -a
-            source $PROJECT_DIR/.env
-            set +a
-            
-            # Run the createsuperuser command; it will use the DJANGO_SUPERUSER_* vars from the environment
-            python $PROJECT_DIR/manage.py createsuperuser --no-input || true
-            
-            deactivate
-
-            # --- 6. Gunicorn Service Setup (Ubuntu) ---
-            echo "=== Creating Gunicorn systemd service file ==="
-            sudo tee /etc/systemd/system/${APP_NAME}.service > /dev/null <<GUNICORN_SERVICE
-            [Unit]
-            Description=gunicorn daemon for ${APP_NAME}
-            After=network.target
-
-            [Service]
-            User=${{ secrets.ORACLE_USER }}
-            Group=www-data
-            WorkingDirectory=${PROJECT_DIR}
-            ExecStart=${VENV_DIR}/bin/gunicorn --workers 3 --bind unix:${PROJECT_DIR}/${APP_NAME}.sock ${APP_NAME}.wsgi:application
-
-            [Install]
-            WantedBy=multi-user.target
-          GUNICORN_SERVICE
-            
-            echo "=== Restarting and enabling Gunicorn service ==="
-            sudo systemctl daemon-reload
-            sudo systemctl restart ${APP_NAME}.service
-            sudo systemctl enable ${APP_NAME}.service
-            
-            echo "=== Deployment successful for ${APP_NAME}! ==="
-          EOF
+      - name: Step 3 - Deploy Application
+        run: |
+          ssh -i ${{ env.SSH_KEY_PATH }} -o StrictHostKeyChecking=no ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} \
+            "APP_NAME=${{ env.APP_NAME }} \
+             PROJECT_DIR=/home/${{ secrets.ORACLE_USER }}/${{ env.APP_NAME }} \
+             VENV_DIR=/home/${{ secrets.ORACLE_USER }}/${{ env.APP_NAME }}/venv \
+             DEPLOY_USER=${{ secrets.ORACLE_USER }} \
+             BACKEND_ENV_VARS='${{ secrets.BACKEND_ENV_VARS }}' \
+             /tmp/deploy_app.sh"
