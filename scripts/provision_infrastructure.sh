@@ -55,6 +55,9 @@ server {
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
+    # Increase max upload size for images and files
+    client_max_body_size 5M;
+
     location = /favicon.ico { access_log off; log_not_found off; }              
     
     location /static/ {
