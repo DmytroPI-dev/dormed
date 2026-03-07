@@ -39,17 +39,18 @@ function App() {
 
 
   useEffect(() => {
+  const handleScroll = () => {
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  if (scrollTop > 300) {
+    setShowScroll(true);
+  } else {
+    setShowScroll(false);
+  }
+};
+
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  const handleScroll = () => {
-    if (window.scrollY > 300) {
-      setShowScroll(true);
-    } else {
-      setShowScroll(false);
-    }
-  };
 
   const handleClickUp = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -176,7 +177,6 @@ function App() {
         <button
           className="scrollTop text-center"
           onClick={handleClickUp}
-          style={{ display: showScroll ? "flex" : "none" }}
         >
           <FontAwesomeIcon icon={faArrowCircleUp} />
         </button>
