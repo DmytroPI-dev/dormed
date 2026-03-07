@@ -7,40 +7,68 @@ const NewsList = ({ news }) => {
   const { t, i18n } = useTranslation();
   const currentLanguage = i18n.language;
 
-  const [bgImageLeft, setBgImageLeft] = useState("url('static/images/green-tree-red-cup.jpg')");
-  const [bgImageRight, setBgImageRight] = useState("url('static/images/girl-01.jpg')");
+   const getPlaceholderUrl = (seed, type = 'left') => {
+    return `https://picsum.photos/600/400?random=${seed}-${type}`;
+  };
 
+  // Use placeholder service URLs or CSS gradients
+  const DEFAULT_PLACEHOLDER_LEFT = getPlaceholderUrl(1, 'left');
+  const DEFAULT_PLACEHOLDER_RIGHT = getPlaceholderUrl(2, 'right');
+
+
+  const [bgImageLeft, setBgImageLeft] = useState(DEFAULT_PLACEHOLDER_LEFT);
+  const [bgImageRight, setBgImageRight] = useState(DEFAULT_PLACEHOLDER_RIGHT);
+
+  // Helper function to validate and format image URL
+  const getImageUrl = (imageUrl, fallback) => {
+    if (!imageUrl) return fallback;
+    
+    // Handle relative URLs from backend
+    if (imageUrl.startsWith('/media/') || imageUrl.startsWith('/static/')) {
+      return `${window.location.origin}${imageUrl}`;
+    }
+    
+    // Handle full URLs
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+    
+    // Default to fallback for invalid URLs
+    return fallback;
+  };
 
   useEffect(() => {
     if (news && news.length > 0) {
-      if (news[0].image_left) {
-        setBgImageLeft(`url('${news[0].image_left}')`);
-      } else {
-        setBgImageLeft(`url('static/images/green-tree-red-cup.jpg')`);
-      }
-      if (news[0].image_right) {
-        setBgImageRight(`url('${news[0].image_right}')`);
-      } else {
-        setBgImageRight(`url('static/images/girl-01.jpg')`);
-      }
+      const leftImage = getImageUrl(news[0].image_left, DEFAULT_PLACEHOLDER_LEFT);
+      const rightImage = getImageUrl(news[0].image_right, DEFAULT_PLACEHOLDER_RIGHT);
+      
+      setBgImageLeft(leftImage);
+      setBgImageRight(rightImage);
     } else {
-      setBgImageLeft(`url('static/images/green-tree-red-cup.jpg')`);
-      setBgImageRight(`url('static/images/girl-01.jpg')`);
+      setBgImageLeft(DEFAULT_PLACEHOLDER_LEFT);
+      setBgImageRight(DEFAULT_PLACEHOLDER_RIGHT);
     }
   }, [news]);
   
   return (
     <>
-      {/* Use the CSS variables in the CSS class definitions */}
-      <style>{`.tm-img-container-1 { background-image: ${bgImageLeft}; }`}</style>
-      <style>{`.tm-img-container-2 { background-image: ${bgImageRight}; }`}</style>
       {!news || news.length <= 0 ? (
         <div>
           <section className="row tm-section-mb tm-section-2">
             <div className="col-md-12 tm-section-2-inner">
               <div className="tm-section-2-left">
-                <div className="tm-img-container tm-img-container-1"></div>
-                <div className="tm-img-container tm-img-container-2"></div>
+                <div 
+                  className="tm-img-container tm-img-container-1"
+                  style={{ backgroundImage: `url('${bgImageLeft}')` }}
+                  role="img"
+                  aria-label="Placeholder image left"
+                ></div>
+                <div 
+                  className="tm-img-container tm-img-container-2"
+                  style={{ backgroundImage: `url('${bgImageRight}')` }}
+                  role="img"
+                  aria-label="Placeholder image right"
+                ></div>
               </div>
               <div className="tm-section-2-right tm-bg-primary">
                 <div className="tm-section-2-text">
@@ -53,33 +81,49 @@ const NewsList = ({ news }) => {
           </section>
         </div>
       ) : (
-        news.map((news) => (
-          <div key={news.pk} className="mt-3">
+        news.map((newsItem) => (
+          <div key={newsItem.pk} className="mt-3">
             <section className="row tm-section-mb tm-section-2">
               <div className="col-md-12 tm-section-2-inner">
                 <div className="tm-section-2-left">
-                  <div className="tm-img-container tm-img-container-1"></div>
-                  <div className="tm-img-container tm-img-container-2"></div>
+                  <div 
+                    className="tm-img-container tm-img-container-1"
+                    style={{ 
+                      backgroundImage: `url('${getImageUrl(newsItem.image_left, DEFAULT_PLACEHOLDER_LEFT)}')` 
+                    }}
+                    role="img"
+                    aria-label={newsItem[`title_${currentLanguage}`] || "News image left"}
+                  ></div>
+                  <div 
+                    className="tm-img-container tm-img-container-2"
+                    style={{ 
+                      backgroundImage: `url('${getImageUrl(newsItem.image_right, DEFAULT_PLACEHOLDER_RIGHT)}')` 
+                    }}
+                    role="img"
+                    aria-label={newsItem[`title_${currentLanguage}`] || "News image right"}
+                  ></div>
                 </div>
                 <div className="tm-section-2-right tm-bg-primary">
-                  <div className="tm-section-2-text">
+                  <div className="tm-section-2-text tm-skew-container">
+                    <div className="tm-skew-content">
                     <h2 className="tm-section-2-header tm-mb-45 text-center">
-                      {news[`title_${currentLanguage}`]}
+                      {newsItem[`title_${currentLanguage}`]}
                     </h2>
                     <h4 className="text-center mt-2">
-                      {news[`header_${currentLanguage}`]}
+                      {newsItem[`header_${currentLanguage}`]}
                     </h4>
-                    <p>{news[`description_${currentLanguage}`]}</p>
-                    <p>{news[`features_${currentLanguage}`]}</p>
+                    <p>{newsItem[`description_${currentLanguage}`]}</p>
+                    <p>{newsItem[`features_${currentLanguage}`]}</p>
                     <p>
                       {t("Posted on: ")}
-                      {news.posted_on}
+                      {newsItem.posted_on}
                     </p>
+                    </div>
                   </div>
                 </div>
               </div>
             </section>
-     </div>
+          </div>
         ))
       )}
     </>
