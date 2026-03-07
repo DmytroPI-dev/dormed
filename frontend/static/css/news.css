@@ -1,8 +1,18 @@
 @import "./themeSwitcher.css";
 
+* {
+  box-sizing: border-box;
+}
+
 body {
   overflow-x: hidden;
+  max-width: 100vw;
 }
+
+html {
+  overflow-x: hidden;
+}
+
 .tm-mb-45 {
   margin-bottom: 45px;
 }
@@ -35,6 +45,8 @@ p {
 .tm-section-2-inner {
   display: flex;
   justify-content: flex-end;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .tm-section-2-left {
@@ -43,6 +55,7 @@ p {
   min-height: 560px;
   -webkit-clip-path: polygon(14% 0%, 100% 0%, 86% 100%, 0% 100%);
   clip-path: polygon(14% 0%, 100% 0%, 86% 100%, 0% 100%);
+  box-sizing: border-box;
 }
 
 .tm-section-2-right {
@@ -52,6 +65,7 @@ p {
   margin-left: -40px;
   -webkit-clip-path: polygon(14% 0%, 100% 0%, 86% 100%, 0% 100%);
   clip-path: polygon(14% 0%, 100% 0%, 86% 100%, 0% 100%);
+  box-sizing: border-box;
 }
 
 .tm-img-container {
@@ -85,28 +99,77 @@ p {
 @media (max-width: 991px) {
   .tm-section-2-inner {
     flex-direction: column;
-    margin-left: 0;
+    margin-left: auto;
+    margin-right: auto;
+    align-items: center;
   }
 
   .tm-section-2-left {
-    margin-left: 0;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    -webkit-clip-path: none;
+    clip-path: none;
   }
 
   .tm-section-2-right {
     width: 100%;
     margin-top: 40px;
-    margin-left: 0;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 20px 15px;
+    -webkit-clip-path: none;
+    clip-path: none;
   }
 
   .tm-section-2-left {
     width: 100%;
     height: 560px;
   }
+  
+  .tm-section-mb {
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+.tm-skew-container {
+  width: 100%;
+  height: 100%;
+  padding: 40px 60px 40px 80px;
+  box-sizing: border-box;
+}
+
+.tm-skew-content {
+  /* This keeps text readable and properly aligned within the slanted shape */
+  max-width: 100%;
 }
 
 @media (max-width: 480px) {
   .tm-section-2-right {
-    padding-left: 80px;
-    padding-right: 80px;
+    padding: 15px 10px;
+  }
+  
+  .tm-skew-container {
+    padding: 10px 15px;
+  }
+  
+  .tm-section-2-header {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .tm-skew-container {
+    padding: 15px 20px;
+  }
+
+  .tm-section-2-text {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+  
+  .tm-section-2-right {
+    padding: 20px 15px;
   }
 }

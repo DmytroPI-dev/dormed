@@ -48,12 +48,14 @@ SECURE_HSTS_PRELOAD = True
 
 # ALLOWED_HOSTS = ['*']
 # for localhost only
-ALLOWED_HOSTS = ["hotel.i-dmytro.org", "127.0.0.1"]
+ALLOWED_HOSTS = ["hotel.i-dmytro.org", "127.0.0.1", "localhost"]
 CSRF_TRUSTED_ORIGINS = ["http://hotel.i-dmytro.org", "https://hotel.i-dmytro.org"]
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
     "http://hotel.i-dmytro.org",
     "https://hotel.i-dmytro.org",
+    "http://localhost:8080",
+    "http://localhost:8000",
     # Add any other allowed origins here as needed
 ]
 
