@@ -147,7 +147,7 @@ jobs:
 
               location / {
                   include proxy_params;
-                  proxy_pass http://unix:/run/${APP_NAME}.sock;
+                  proxy_pass http://unix:${PROJECT_DIR}/${APP_NAME}.sock;
               }
           }
           NGINX_CONF
@@ -204,43 +204,26 @@ jobs:
             deactivate
 
             # --- 6. Gunicorn Service Setup (Ubuntu) ---
-            echo "=== Creating Gunicorn systemd socket file ==="
-            sudo tee /etc/systemd/system/${APP_NAME}.socket > /dev/null <<GUNICORN_SOCKET
-            [Unit]
-            Description=gunicorn socket for ${APP_NAME}
-
-            [Socket]
-            ListenStream=/run/${APP_NAME}.sock
-            SocketUser=${{ secrets.ORACLE_USER }}
-            SocketGroup=www-data
-            SocketMode=0660
-
-            [Install]
-            WantedBy=sockets.target
-          GUNICORN_SOCKET
-
             echo "=== Creating Gunicorn systemd service file ==="
             sudo tee /etc/systemd/system/${APP_NAME}.service > /dev/null <<GUNICORN_SERVICE
             [Unit]
             Description=gunicorn daemon for ${APP_NAME}
-            Requires=${APP_NAME}.socket
             After=network.target
 
             [Service]
             User=${{ secrets.ORACLE_USER }}
             Group=www-data
             WorkingDirectory=${PROJECT_DIR}
-            ExecStart=${VENV_DIR}/bin/gunicorn --workers 3 ${APP_NAME}.wsgi:application
+            ExecStart=${VENV_DIR}/bin/gunicorn --workers 3 --bind unix:${PROJECT_DIR}/${APP_NAME}.sock ${APP_NAME}.wsgi:application
 
             [Install]
             WantedBy=multi-user.target
           GUNICORN_SERVICE
             
-            echo "=== Restarting and enabling Gunicorn socket and service ==="
+            echo "=== Restarting and enabling Gunicorn service ==="
             sudo systemctl daemon-reload
-            sudo systemctl restart ${APP_NAME}.socket
             sudo systemctl restart ${APP_NAME}.service
-            sudo systemctl enable ${APP_NAME}.socket
+            sudo systemctl enable ${APP_NAME}.service
             
             echo "=== Deployment successful for ${APP_NAME}! ==="
           EOF
