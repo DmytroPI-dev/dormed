@@ -1,4 +1,0 @@
-bucket    = "your-terraform-state-bucket"
-namespace = "your-object-storage-namespace"
-key       = "oracle-tf/terraform.tfstate"
-region    = "uk-london-1"
