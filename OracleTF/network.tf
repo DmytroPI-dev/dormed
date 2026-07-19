@@ -84,6 +84,18 @@ resource "oci_core_security_list" "web_and_ssh_security_list" {
     }
     stateless = false
   }
+  # WireGuard VPN (UDP 51820)
+  ingress_security_rules {
+    description = "VPN"
+    protocol    = "17" # UDP
+    source      = "0.0.0.0/0"
+    stateless   = false
+
+    udp_options {
+      min = 51820
+      max = 51820
+    }
+  }
 
   egress_security_rules {
     protocol    = "all"
