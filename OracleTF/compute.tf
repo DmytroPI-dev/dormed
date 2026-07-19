@@ -1,13 +1,3 @@
-# Data source to get the list of available images for the Always Free tier
-data "oci_core_images" "always_free_images" {
-  compartment_id           = var.compartment_ocid
-  operating_system         = "Canonical Ubuntu"
-  operating_system_version = "24.04"
-  shape                    = "VM.Standard.E2.1.Micro"
-  sort_by                  = "TIMECREATED"
-  sort_order               = "DESC"
-}
-
 
 # Creates an Always Free tier compute instance
 resource "oci_core_instance" "always_free_instance" {
@@ -25,7 +15,7 @@ resource "oci_core_instance" "always_free_instance" {
 
   source_details {
     source_type = "image"
-    source_id   = data.oci_core_images.always_free_images.images[0].id
+    source_id   = "ocid1.image.oc1.uk-london-1.aaaaaaaaa4ht2u5ubsdbz4eqbo6gyxyvxzjg7l2iisnojd7dszoc4aa7xfka"
   }
 
   metadata = {

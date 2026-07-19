@@ -6,6 +6,7 @@ terraform {
       version = ">=5.0"
     }
   }
+  backend "oci" {}
 }
 provider "oci" {
   tenancy_ocid     = var.tenancy_ocid

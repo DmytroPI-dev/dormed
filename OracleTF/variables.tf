@@ -35,3 +35,13 @@ variable "ssh_public_key" {
   description = "The content of the public SSH key."
   type        = string
 }
+
+variable "bucket_name" {
+  description = "The name of the Object Storage bucket."
+  type        = string
+}
+
+variable "namespace" {
+  description = "The Object Storage namespace."
+  type        = string
+}

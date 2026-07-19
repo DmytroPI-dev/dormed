@@ -4,6 +4,7 @@
 # .tfvars files
 *.tfvars
 *.tfvars.json
+backend.hcl
 
 # In-house modules
 .terraform/modules/
